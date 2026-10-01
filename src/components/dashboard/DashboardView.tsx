@@ -6,9 +6,8 @@ import { MetricCard } from './MetricCard';
 import { ExpenseFlowChart } from './ExpenseFlowChart';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { RecentTransactions } from './RecentTransactions';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Wallet,
@@ -21,7 +20,6 @@ import {
   CreditCard,
   Smartphone,
   Landmark,
-  Sparkles,
   Receipt,
   HandCoins,
 } from 'lucide-react';
@@ -38,7 +36,6 @@ export const DashboardView: React.FC = () => {
     transactions,
     accounts,
     goals,
-    recurringExpenses,
     totalRecurringMonthly,
     recurringPaidThisMonth,
     recurringPendingThisMonth,
@@ -47,7 +44,6 @@ export const DashboardView: React.FC = () => {
     netDebtBalance,
     totalLiquidAssets,
     totalSavedInGoals,
-    totalTargetGoals,
     selectedMonth,
     monthComparison,
     setActiveTab,
@@ -185,7 +181,7 @@ export const DashboardView: React.FC = () => {
                     <Icon className="size-3" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-[70px]">
+                    <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-17.5">
                       {acc.name}
                     </p>
                     <p className="text-[9px] text-muted-foreground font-mono">
@@ -272,7 +268,7 @@ export const DashboardView: React.FC = () => {
             {goals[0] ? (
               <>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-foreground truncate max-w-[150px]">
+                  <span className="font-semibold text-foreground truncate max-w-37.5">
                     {goals[0].name}
                   </span>
                   <span className="text-muted-foreground font-mono">

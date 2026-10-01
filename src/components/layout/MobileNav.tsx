@@ -1,8 +1,6 @@
 'use client';
 
-import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { ActiveTab } from '../../types/finance';
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -23,13 +21,6 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
     setEditingTransaction(null);
     setIsAddModalOpen(true);
   };
-
-  const navItems: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
-    { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Movimientos', icon: ArrowLeftRight },
-    { id: 'wallets', label: 'Cuentas', icon: Wallet },
-    { id: 'debts', label: 'Deudas', icon: HandCoins },
-  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-t border-border md:hidden px-3 py-1.5 safe-area-bottom shadow-lg">

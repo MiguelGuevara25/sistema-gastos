@@ -12,13 +12,12 @@ import {
   Plus,
   Trash2,
   Edit2,
-  Calendar,
-  CreditCard,
-  Tag,
   FileSpreadsheet,
 } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS } from '../../data/categories';
 import { TransactionType } from '../../types/finance';
+import { compareAsc, compareDesc, parseISO, isToday, isYesterday, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export const TransactionList: React.FC = () => {
   const {
@@ -65,13 +64,24 @@ export const TransactionList: React.FC = () => {
         return true;
       })
       .sort((a, b) => {
-        if (sortOrder === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
-        if (sortOrder === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (sortOrder === 'newest') return compareDesc(parseISO(a.date), parseISO(b.date));
+        if (sortOrder === 'oldest') return compareAsc(parseISO(a.date), parseISO(b.date));
         if (sortOrder === 'highest') return b.amount - a.amount;
         if (sortOrder === 'lowest') return a.amount - b.amount;
         return 0;
       });
   }, [transactions, searchTerm, typeFilter, categoryFilter, methodFilter, sortOrder]);
+
+  const formatDateLabel = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr + 'T00:00:00');
+      if (isToday(date)) return 'Hoy';
+      if (isYesterday(date)) return 'Ayer';
+      return format(date, "d 'de' MMM, yyyy", { locale: es });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const filteredTotal = useMemo(() => {
     return filteredTransactions.reduce((acc, curr) => {
@@ -202,7 +212,7 @@ export const TransactionList: React.FC = () => {
               {/* Sort Order */}
               <select
                 value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as any)}
+                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest' | 'highest' | 'lowest')}
                 className="w-full h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 <option value="newest" className="bg-popover text-popover-foreground">Más recientes primero</option>
@@ -262,7 +272,7 @@ export const TransactionList: React.FC = () => {
 
                     <div className="min-w-0 space-y-0.5 sm:space-y-1">
                       <div className="flex items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
+                        <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-32.5 xs:max-w-[180px] sm:max-w-none">
                           {tx.description}
                         </span>
                         <Badge
@@ -276,9 +286,9 @@ export const TransactionList: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 text-[10px] sm:text-xs text-muted-foreground">
-                        <span className="truncate max-w-[90px] sm:max-w-none">{cat.name}</span>
+                        <span className="truncate max-w-22.5 sm:max-w-none">{cat.name}</span>
                         <span>•</span>
-                        <span>{tx.date}</span>
+                        <span>{formatDateLabel(tx.date)}</span>
                         <span className="hidden xs:inline">•</span>
                         <span className="hidden xs:inline">{PAYMENT_METHOD_LABELS[tx.paymentMethod] || tx.paymentMethod}</span>
                       </div>

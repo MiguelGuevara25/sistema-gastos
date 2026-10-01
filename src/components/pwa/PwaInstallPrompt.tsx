@@ -16,10 +16,7 @@ import {
   Smartphone,
   Share,
   PlusSquare,
-  CheckCircle2,
   Sparkles,
-  ExternalLink,
-  Laptop,
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {

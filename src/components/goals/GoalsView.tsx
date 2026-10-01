@@ -3,45 +3,30 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { SavingsGoal } from '../../types/finance';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import {
   Target,
   Plus,
   Edit2,
   Trash2,
   Calendar,
-  Sparkles,
   ArrowUpRight,
   ArrowDownRight,
-  ShieldCheck,
-  Coins,
   CheckCircle2,
 } from 'lucide-react';
+import { SavingsGoalModal } from './SavingsGoalModal';
+import { GoalActionModal } from './GoalActionModal';
+import { differenceInCalendarDays, parseISO, startOfToday } from 'date-fns';
 
 export const GoalsView: React.FC = () => {
   const {
     goals,
-    addGoal,
-    updateGoal,
     deleteGoal,
-    contributeToGoal,
-    withdrawFromGoal,
     totalSavedInGoals,
     totalTargetGoals,
-    accounts,
     formatCurrency,
   } = useFinance();
 
@@ -54,99 +39,29 @@ export const GoalsView: React.FC = () => {
     goal: SavingsGoal;
     type: 'deposit' | 'withdraw';
   } | null>(null);
-  const [actionAmount, setActionAmount] = useState('');
-  const [selectedAccountId, setSelectedAccountId] = useState('');
-
-  // Form State
-  const [goalName, setGoalName] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
-  const [initialAmount, setInitialAmount] = useState('');
-  const [targetDate, setTargetDate] = useState('');
-  const [category, setCategory] = useState('General');
-  const [goalColor, setGoalColor] = useState('#10b981');
 
   const overallProgress =
     totalTargetGoals > 0 ? Math.min(100, Math.round((totalSavedInGoals / totalTargetGoals) * 100)) : 0;
 
   const handleOpenAddGoal = () => {
     setEditingGoal(null);
-    setGoalName('');
-    setTargetAmount('');
-    setInitialAmount('0');
-    setTargetDate('');
-    setCategory('General');
-    setGoalColor('#10b981');
     setIsAddGoalOpen(true);
   };
 
   const handleOpenEditGoal = (goal: SavingsGoal) => {
     setEditingGoal(goal);
-    setGoalName(goal.name);
-    setTargetAmount(goal.targetAmount.toString());
-    setInitialAmount(goal.currentAmount.toString());
-    setTargetDate(goal.targetDate || '');
-    setCategory(goal.category || 'General');
-    setGoalColor(goal.color);
     setIsAddGoalOpen(true);
-  };
-
-  const handleSaveGoal = (e: React.FormEvent) => {
-    e.preventDefault();
-    const target = parseFloat(targetAmount);
-    const initial = parseFloat(initialAmount) || 0;
-    if (isNaN(target) || target <= 0 || !goalName.trim()) return;
-
-    if (editingGoal) {
-      updateGoal(editingGoal.id, {
-        name: goalName.trim(),
-        targetAmount: target,
-        targetDate: targetDate || undefined,
-        category: category.trim() || undefined,
-        color: goalColor,
-      });
-    } else {
-      addGoal({
-        name: goalName.trim(),
-        targetAmount: target,
-        currentAmount: initial,
-        targetDate: targetDate || undefined,
-        category: category.trim() || undefined,
-        color: goalColor,
-      });
-    }
-
-    setIsAddGoalOpen(false);
-    setEditingGoal(null);
   };
 
   const handleOpenActionModal = (goal: SavingsGoal, type: 'deposit' | 'withdraw') => {
     setActionModal({ goal, type });
-    setActionAmount('');
-    setSelectedAccountId(accounts[0]?.id || '');
-  };
-
-  const handleExecuteAction = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!actionModal) return;
-    const amt = parseFloat(actionAmount);
-    if (isNaN(amt) || amt <= 0) return;
-
-    if (actionModal.type === 'deposit') {
-      contributeToGoal(actionModal.goal.id, amt, selectedAccountId || undefined);
-    } else {
-      withdrawFromGoal(actionModal.goal.id, amt, selectedAccountId || undefined);
-    }
-
-    setActionModal(null);
   };
 
   // Helper to calculate days or monthly recommended deposit
   const getGoalTimeAdvice = (goal: SavingsGoal) => {
     if (!goal.targetDate) return null;
-    const target = new Date(goal.targetDate);
-    const now = new Date();
-    const diffTime = target.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const target = parseISO(goal.targetDate.includes('T') ? goal.targetDate : goal.targetDate + 'T00:00:00');
+    const diffDays = differenceInCalendarDays(target, startOfToday());
 
     if (diffDays <= 0) return { label: 'Fecha cumplida', color: 'text-amber-400' };
 
@@ -347,206 +262,22 @@ export const GoalsView: React.FC = () => {
       </div>
 
       {/* Add / Edit Goal Modal */}
-      <Dialog open={isAddGoalOpen} onOpenChange={setIsAddGoalOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">
-              {editingGoal ? 'Editar Meta de Ahorro' : 'Crear Nueva Meta de Ahorro'}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Define tu objetivo, monto deseado y fecha estimada para cumplirlo
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveGoal} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Nombre de la Meta</Label>
-              <Input
-                type="text"
-                placeholder="ej: Fondo de Emergencia, Vacaciones, Laptop..."
-                value={goalName}
-                onChange={(e) => setGoalName(e.target.value)}
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Monto Objetivo ({formatCurrency(0).split(' ')[0]})</Label>
-                <Input
-                  type="number"
-                  step="10"
-                  min="1"
-                  placeholder="3000"
-                  value={targetAmount}
-                  onChange={(e) => setTargetAmount(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-
-              {!editingGoal && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Ahorro Inicial</Label>
-                  <Input
-                    type="number"
-                    step="10"
-                    placeholder="0"
-                    value={initialAmount}
-                    onChange={(e) => setInitialAmount(e.target.value)}
-                    className="h-9 text-xs"
-                  />
-                </div>
-              )}
-
-              {editingGoal && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Categoría</Label>
-                  <Input
-                    type="text"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="h-9 text-xs"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Fecha Límite (Opcional)</Label>
-                <Input
-                  type="date"
-                  value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Color</Label>
-                <div className="flex items-center gap-1.5 pt-1.5">
-                  {[
-                    '#10b981',
-                    '#8b5cf6',
-                    '#06b6d4',
-                    '#f97316',
-                    '#e11d48',
-                    '#eab308',
-                  ].map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setGoalColor(c)}
-                      className={`size-6 rounded-full cursor-pointer transition-transform ${
-                        goalColor === c ? 'scale-125 ring-2 ring-foreground ring-offset-2 ring-offset-background' : 'opacity-80 hover:opacity-100'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddGoalOpen(false)}
-                className="cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" size="sm" className="cursor-pointer font-semibold">
-                Guardar Meta
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Add / Edit Goal Modal */}
+      <SavingsGoalModal
+        isOpen={isAddGoalOpen}
+        onClose={() => {
+          setIsAddGoalOpen(false);
+          setEditingGoal(null);
+        }}
+        goalToEdit={editingGoal}
+      />
 
       {/* Deposit / Withdraw Modal */}
-      <Dialog
-        open={Boolean(actionModal)}
-        onOpenChange={(open) => !open && setActionModal(null)}
-      >
-        <DialogContent className="w-[92vw] sm:max-w-xs rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              {actionModal?.type === 'deposit' ? (
-                <>
-                  <ArrowDownRight className="size-4 text-emerald-400" />
-                  Aportar a: {actionModal?.goal.name}
-                </>
-              ) : (
-                <>
-                  <ArrowUpRight className="size-4 text-rose-400" />
-                  Retirar de: {actionModal?.goal.name}
-                </>
-              )}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {actionModal?.type === 'deposit'
-                ? 'Incrementa tus ahorros destinados a este objetivo'
-                : 'Libera fondos de esta meta para otros usos'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleExecuteAction} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Monto</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                value={actionAmount}
-                onChange={(e) => setActionAmount(e.target.value)}
-                className="h-10 text-base font-bold"
-                autoFocus
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {actionModal?.type === 'deposit'
-                  ? 'Debitar de cuenta / billetera (Opcional)'
-                  : 'Depositar en cuenta / billetera (Opcional)'}
-              </Label>
-              <select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none"
-              >
-                <option value="">-- Sin vincular a cuenta --</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id} className="bg-popover text-popover-foreground">
-                    {a.name} ({formatCurrency(a.balance)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <DialogFooter className="pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setActionModal(null)}
-                className="cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" size="sm" className="cursor-pointer font-semibold">
-                Confirmar
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <GoalActionModal
+        isOpen={Boolean(actionModal)}
+        onClose={() => setActionModal(null)}
+        action={actionModal}
+      />
     </div>
   );
 };

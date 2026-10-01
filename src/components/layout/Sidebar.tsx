@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { ActiveTab } from '../../types/finance';
 import { Button } from '@/components/ui/button';

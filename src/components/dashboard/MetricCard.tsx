@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
 
@@ -30,7 +29,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <Card className="hover:border-border/80 transition-all shadow-xs flex flex-col justify-between py-3 sm:py-4">
       <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 space-y-0 px-3 sm:px-4">
-        <span className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate max-w-[90px] xs:max-w-none">{title}</span>
+        <span className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate max-w-22.5 xs:max-w-none">{title}</span>
         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
           <Icon className={`size-3.5 sm:size-4.5 ${iconColor}`} />
         </div>

@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { CategoryIcon } from '../ui/CategoryIcon';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -8,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Clock, Plus, Trash2, Edit2 } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS } from '../../data/categories';
+
+import { isToday, isYesterday, format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export const RecentTransactions: React.FC = () => {
   const {
@@ -33,16 +35,11 @@ export const RecentTransactions: React.FC = () => {
   };
 
   const formatDateLabel = (dateStr: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
-    if (dateStr === today) return 'Hoy';
-    if (dateStr === yesterday) return 'Ayer';
-
     try {
-      const [year, month, day] = dateStr.split('-');
-      const d = new Date(Number(year), Number(month) - 1, Number(day));
-      return new Intl.DateTimeFormat('es-ES', { month: 'short', day: 'numeric' }).format(d);
+      const date = parseISO(dateStr + 'T00:00:00');
+      if (isToday(date)) return 'Hoy';
+      if (isYesterday(date)) return 'Ayer';
+      return format(date, "d 'de' MMM", { locale: es });
     } catch {
       return dateStr;
     }

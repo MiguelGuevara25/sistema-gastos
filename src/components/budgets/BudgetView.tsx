@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useFinance } from '../../context/FinanceContext';
 import { CategoryIcon } from '../ui/CategoryIcon';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Target,
@@ -18,6 +18,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+interface BudgetFormData {
+  newBudget: number | string;
+}
+
 export const BudgetView: React.FC = () => {
   const {
     settings,
@@ -28,15 +32,19 @@ export const BudgetView: React.FC = () => {
   } = useFinance();
 
   const [isEditingBudget, setIsEditingBudget] = useState(false);
-  const [newBudget, setNewBudget] = useState(settings.monthlyBudget.toString());
+
+  const { register, handleSubmit } = useForm<BudgetFormData>({
+    values: {
+      newBudget: settings.monthlyBudget.toString(),
+    },
+  });
 
   const budget = settings.monthlyBudget;
   const remaining = budget - totalExpenses;
   const percentageUsed = budget > 0 ? Math.round((totalExpenses / budget) * 100) : 0;
 
-  const handleSaveBudget = (e: React.FormEvent) => {
-    e.preventDefault();
-    const val = parseFloat(newBudget);
+  const onSaveBudget = (data: BudgetFormData) => {
+    const val = parseFloat(String(data.newBudget));
     if (!isNaN(val) && val > 0) {
       updateSettings({ monthlyBudget: val });
     }
@@ -98,15 +106,16 @@ export const BudgetView: React.FC = () => {
 
           <div>
             {isEditingBudget ? (
-              <form onSubmit={handleSaveBudget} className="flex items-center gap-2">
+              <form onSubmit={handleSubmit(onSaveBudget)} className="flex items-center gap-2">
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-semibold">
                     {settings.currency}
                   </span>
                   <Input
                     type="number"
-                    value={newBudget}
-                    onChange={(e) => setNewBudget(e.target.value)}
+                    step="50"
+                    min="1"
+                    {...register('newBudget', { required: true })}
                     autoFocus
                     className="w-32 pl-8 h-8 text-sm"
                   />
@@ -123,10 +132,7 @@ export const BudgetView: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setNewBudget(settings.monthlyBudget.toString());
-                  setIsEditingBudget(true);
-                }}
+                onClick={() => setIsEditingBudget(true)}
                 className="gap-1.5 cursor-pointer text-xs"
               >
                 <Edit3 className="size-3" />

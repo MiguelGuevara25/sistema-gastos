@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,8 @@ import {
   Compass,
   TrendingUp,
   ShieldCheck,
-  AlertTriangle,
   Lightbulb,
-  CheckCircle2,
   Target,
-  ArrowRight,
   Flame,
   Info,
   Clock,
@@ -31,14 +28,12 @@ export const FinancialAdvisorView: React.FC = () => {
     transactions,
     totalIncome,
     totalExpenses,
-    netBalance,
     savingsRate,
     budgetUsagePercent,
     goals,
     addGoal,
     settings,
     formatCurrency,
-    setActiveTab,
   } = useFinance();
 
   // Investment Simulator State
@@ -336,7 +331,7 @@ export const FinancialAdvisorView: React.FC = () => {
                   {rule503020.wantsPercent > 35 ? (
                     <p>
                       • <strong>Tus gastos en deseos superan el 35%:</strong> Los pequeños gustos
-                      frecuentes (cafés, delivery, salidas constantes) son "gastos hormiga" que
+                      frecuentes (cafés, delivery, salidas constantes) son &quot;gastos hormiga&quot; que
                       podrías convertir en un potente fondo de inversión.
                     </p>
                   ) : (
@@ -354,7 +349,7 @@ export const FinancialAdvisorView: React.FC = () => {
                   ) : (
                     <p>
                       • <strong>Tu ahorro está por debajo del 20%:</strong> Intenta la técnica de
-                      <strong> "Pagarte a ti primero"</strong>: apenas recibas tu sueldo o ingresos,
+                      <strong> &quot;Pagarte a ti primero&quot;</strong>: apenas recibas tu sueldo o ingresos,
                       separa el 10% a 15% automáticamente a una meta de ahorro antes de empezar a
                       gastar.
                     </p>

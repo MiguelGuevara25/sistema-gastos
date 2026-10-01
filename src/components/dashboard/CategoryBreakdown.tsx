@@ -94,7 +94,7 @@ export const CategoryBreakdown: React.FC = () => {
                   <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
                     Total
                   </span>
-                  <span className="text-xs font-bold text-foreground max-w-[85px] truncate">
+                  <span className="text-xs font-bold text-foreground max-w-21.2 truncate">
                     {formatCurrency(totalExpenses)}
                   </span>
                 </div>

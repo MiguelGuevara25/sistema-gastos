@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useForm } from 'react-hook-form';
 import { useFinance } from '../../context/FinanceContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,13 @@ import {
 } from 'lucide-react';
 import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
 
+interface SettingsFormData {
+  userName: string;
+  currency: string;
+  currencyCode: string;
+  monthlyBudget: number | string;
+}
+
 export const SettingsView: React.FC = () => {
   const {
     settings,
@@ -33,22 +41,28 @@ export const SettingsView: React.FC = () => {
     transactions,
   } = useFinance();
 
-  const [userName, setUserName] = useState(settings.userName);
-  const [currency, setCurrency] = useState(settings.currency);
-  const [currencyCode, setCurrencyCode] = useState(settings.currencyCode);
-  const [monthlyBudget, setMonthlyBudget] = useState(settings.monthlyBudget.toString());
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    const budgetNum = parseFloat(monthlyBudget);
+  const { register, handleSubmit, setValue, watch } = useForm<SettingsFormData>({
+    values: {
+      userName: settings.userName,
+      currency: settings.currency,
+      currencyCode: settings.currencyCode,
+      monthlyBudget: settings.monthlyBudget.toString(),
+    },
+  });
+
+  const currentCurrency = watch('currency');
+
+  const onSaveProfile = (data: SettingsFormData) => {
+    const budgetNum = parseFloat(String(data.monthlyBudget));
     updateSettings({
-      userName: userName.trim() || 'Usuario',
-      currency,
-      currencyCode,
+      userName: data.userName.trim() || 'Usuario',
+      currency: data.currency,
+      currencyCode: data.currencyCode,
       monthlyBudget: !isNaN(budgetNum) && budgetNum > 0 ? budgetNum : settings.monthlyBudget,
     });
     setSavedSuccess(true);
@@ -114,7 +128,7 @@ export const SettingsView: React.FC = () => {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSaveProfile} className="space-y-4">
+          <form onSubmit={handleSubmit(onSaveProfile)} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">
@@ -122,8 +136,7 @@ export const SettingsView: React.FC = () => {
                 </Label>
                 <Input
                   type="text"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
+                  {...register('userName')}
                   placeholder="Tu nombre"
                   className="h-10 bg-muted/40"
                 />
@@ -143,13 +156,13 @@ export const SettingsView: React.FC = () => {
                     <Button
                       key={cur.code}
                       type="button"
-                      variant={currency === cur.symbol ? 'secondary' : 'outline'}
+                      variant={currentCurrency === cur.symbol ? 'secondary' : 'outline'}
                       onClick={() => {
-                        setCurrency(cur.symbol);
-                        setCurrencyCode(cur.code);
+                        setValue('currency', cur.symbol);
+                        setValue('currencyCode', cur.code);
                       }}
                       className={`h-auto py-1.5 px-2 flex flex-col items-center cursor-pointer ${
-                        currency === cur.symbol ? 'border-primary/50 font-bold' : ''
+                        currentCurrency === cur.symbol ? 'border-primary/50 font-bold' : ''
                       }`}
                     >
                       <span className="text-xs">{cur.symbol}</span>
@@ -162,13 +175,12 @@ export const SettingsView: React.FC = () => {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">
-                Presupuesto Mensual por Defecto ({currency})
+                Presupuesto Mensual por Defecto ({currentCurrency})
               </Label>
               <Input
                 type="number"
                 step="50"
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(e.target.value)}
+                {...register('monthlyBudget')}
                 className="w-full sm:w-1/2 h-10 bg-muted/40"
               />
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
+import { useForm } from 'react-hook-form';
 import { useFinance } from '../../context/FinanceContext';
 import { TransactionType, PaymentMethod } from '../../types/finance';
 import { CategoryIcon } from '../ui/CategoryIcon';
@@ -15,9 +16,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowDownRight, ArrowUpRight, Check, Calendar, CreditCard, Tag, FileText, Wallet } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS } from '../../data/categories';
+import { format } from 'date-fns';
+
+interface TransactionFormData {
+  type: TransactionType;
+  amount: number | string;
+  description: string;
+  categoryId: string;
+  date: string;
+  paymentMethod: PaymentMethod;
+  accountId: string;
+  notes: string;
+}
 
 export const TransactionModal: React.FC = () => {
   const {
@@ -33,100 +45,96 @@ export const TransactionModal: React.FC = () => {
     formatCurrency,
   } = useFinance();
 
-  const [type, setType] = useState<TransactionType>('expense');
-  const [amount, setAmount] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('tarjeta_debito');
-  const [accountId, setAccountId] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const defaultExpCat = useMemo(
+    () => categories.find((c) => c.type === 'expense'),
+    [categories]
+  );
 
-  useEffect(() => {
-    if (editingTransaction) {
-      setType(editingTransaction.type);
-      setAmount(editingTransaction.amount.toString());
-      setDescription(editingTransaction.description);
-      setCategoryId(editingTransaction.categoryId);
-      setDate(editingTransaction.date);
-      setPaymentMethod(editingTransaction.paymentMethod);
-      setAccountId(editingTransaction.accountId || '');
-      setNotes(editingTransaction.notes || '');
-    } else {
-      setType('expense');
-      setAmount('');
-      setDescription('');
-      const defaultExpCat = categories.find((c) => c.type === 'expense');
-      setCategoryId(defaultExpCat ? defaultExpCat.id : '');
-      setDate(new Date().toISOString().split('T')[0]);
-      setPaymentMethod('tarjeta_debito');
-      setAccountId(accounts[0]?.id || '');
-      setNotes('');
-    }
-    setError('');
-  }, [editingTransaction, isAddModalOpen, categories, accounts]);
+  const defaultValues: TransactionFormData = useMemo(
+    () => ({
+      type: 'expense',
+      amount: '',
+      description: '',
+      categoryId: defaultExpCat?.id || '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      paymentMethod: 'tarjeta_debito',
+      accountId: accounts[0]?.id || '',
+      notes: '',
+    }),
+    [defaultExpCat, accounts]
+  );
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<TransactionFormData>({
+    values: editingTransaction
+      ? {
+          type: editingTransaction.type,
+          amount: editingTransaction.amount,
+          description: editingTransaction.description,
+          categoryId: editingTransaction.categoryId,
+          date: editingTransaction.date,
+          paymentMethod: editingTransaction.paymentMethod,
+          accountId: editingTransaction.accountId || '',
+          notes: editingTransaction.notes || '',
+        }
+      : defaultValues,
+  });
+
+  const currentType = watch('type');
+  const currentCategoryId = watch('categoryId');
 
   const handleTypeChange = (newType: TransactionType) => {
-    setType(newType);
+    setValue('type', newType);
     const available = categories.filter((c) => c.type === newType);
-    if (!available.some((c) => c.id === categoryId)) {
-      setCategoryId(available[0]?.id || '');
+    if (!available.some((c) => c.id === currentCategoryId)) {
+      setValue('categoryId', available[0]?.id || '');
     }
   };
 
   const handleClose = () => {
+    reset(defaultValues);
     setIsAddModalOpen(false);
     setEditingTransaction(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseFloat(amount);
-
-    if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Por favor ingresa un monto válido mayor a 0');
-      return;
-    }
-
-    if (!description.trim()) {
-      setError('Por favor ingresa un concepto o descripción');
-      return;
-    }
-
-    if (!categoryId) {
-      setError('Por favor selecciona una categoría');
-      return;
-    }
+  const onSubmit = (data: TransactionFormData) => {
+    const numAmount = parseFloat(String(data.amount));
+    if (isNaN(numAmount) || numAmount <= 0) return;
 
     if (editingTransaction) {
       updateTransaction(editingTransaction.id, {
-        type,
+        type: data.type,
         amount: numAmount,
-        description: description.trim(),
-        categoryId,
-        date,
-        paymentMethod,
-        accountId: accountId || undefined,
-        notes: notes.trim(),
+        description: data.description.trim(),
+        categoryId: data.categoryId,
+        date: data.date,
+        paymentMethod: data.paymentMethod,
+        accountId: data.accountId || undefined,
+        notes: data.notes?.trim() || undefined,
       });
     } else {
       addTransaction({
-        type,
+        type: data.type,
         amount: numAmount,
-        description: description.trim(),
-        categoryId,
-        date,
-        paymentMethod,
-        accountId: accountId || undefined,
-        notes: notes.trim(),
+        description: data.description.trim(),
+        categoryId: data.categoryId,
+        date: data.date,
+        paymentMethod: data.paymentMethod,
+        accountId: data.accountId || undefined,
+        notes: data.notes?.trim() || undefined,
       });
     }
 
     handleClose();
   };
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  const filteredCategories = categories.filter((c) => c.type === currentType);
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -140,20 +148,14 @@ export const TransactionModal: React.FC = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 text-xs font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
-              {error}
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Type Selector (Gasto / Ingreso Tabs) */}
           <div className="grid grid-cols-2 p-1 bg-muted rounded-xl gap-1">
             <button
               type="button"
               onClick={() => handleTypeChange('expense')}
               className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                type === 'expense'
+                currentType === 'expense'
                   ? 'bg-background text-rose-400 shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -165,7 +167,7 @@ export const TransactionModal: React.FC = () => {
               type="button"
               onClick={() => handleTypeChange('income')}
               className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                type === 'income'
+                currentType === 'income'
                   ? 'bg-background text-emerald-400 shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -187,12 +189,17 @@ export const TransactionModal: React.FC = () => {
                 step="0.01"
                 min="0.01"
                 placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
                 autoFocus
+                {...register('amount', {
+                  required: 'El monto es obligatorio',
+                  min: { value: 0.01, message: 'El monto debe ser mayor a 0' },
+                })}
                 className="pl-12 h-12 text-2xl font-bold bg-muted/40 border-input"
               />
             </div>
+            {errors.amount && (
+              <p className="text-xs text-destructive">{errors.amount.message}</p>
+            )}
           </div>
 
           {/* Concept / Description */}
@@ -200,11 +207,13 @@ export const TransactionModal: React.FC = () => {
             <Label className="text-xs font-medium text-muted-foreground">Concepto / Descripción</Label>
             <Input
               type="text"
-              placeholder={type === 'expense' ? 'Ej. Almuerzo, Uber, Factura de luz' : 'Ej. Sueldo, Venta freelance'}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              placeholder={currentType === 'expense' ? 'Ej. Almuerzo, Uber, Factura de luz' : 'Ej. Sueldo, Venta freelance'}
+              {...register('description', { required: 'La descripción es obligatoria' })}
               className="h-10 bg-muted/40"
             />
+            {errors.description && (
+              <p className="text-xs text-destructive">{errors.description.message}</p>
+            )}
           </div>
 
           {/* Category Picker */}
@@ -213,14 +222,15 @@ export const TransactionModal: React.FC = () => {
               <Tag className="size-3.5" />
               Categoría
             </Label>
+            <input type="hidden" {...register('categoryId', { required: 'Selecciona una categoría' })} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2 max-h-36 overflow-y-auto p-1.5 border border-border rounded-xl bg-muted/20">
               {filteredCategories.map((cat) => {
-                const isSelected = categoryId === cat.id;
+                const isSelected = currentCategoryId === cat.id;
                 return (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setCategoryId(cat.id)}
+                    onClick={() => setValue('categoryId', cat.id, { shouldValidate: true })}
                     className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-accent border-border text-foreground shadow-xs font-semibold'
@@ -238,6 +248,9 @@ export const TransactionModal: React.FC = () => {
                 );
               })}
             </div>
+            {errors.categoryId && (
+              <p className="text-xs text-destructive">{errors.categoryId.message}</p>
+            )}
           </div>
 
           {/* Date, Payment Method & Wallet / Account */}
@@ -249,9 +262,8 @@ export const TransactionModal: React.FC = () => {
               </Label>
               <Input
                 type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-10 bg-muted/40 [color-scheme:dark]"
+                {...register('date', { required: true })}
+                className="h-10 bg-muted/40 scheme-dark"
               />
             </div>
 
@@ -261,8 +273,7 @@ export const TransactionModal: React.FC = () => {
                 Método de Pago
               </Label>
               <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                {...register('paymentMethod')}
                 className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
@@ -279,8 +290,7 @@ export const TransactionModal: React.FC = () => {
                 Cuenta / Billetera
               </Label>
               <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
+                {...register('accountId')}
                 className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 <option value="">-- Sin cuenta --</option>
@@ -302,8 +312,7 @@ export const TransactionModal: React.FC = () => {
             <textarea
               rows={2}
               placeholder="Detalles adicionales o recordatorios..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              {...register('notes')}
               className="w-full px-3 py-2 bg-muted/40 border border-input rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-ring transition-colors resize-none"
             />
           </div>

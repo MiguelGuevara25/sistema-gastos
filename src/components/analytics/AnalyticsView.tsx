@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { CategoryIcon } from '../ui/CategoryIcon';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';

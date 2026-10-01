@@ -21,6 +21,8 @@ import {
   DEFAULT_RECURRING,
   DEFAULT_DEBTS,
 } from '../data/initialData';
+import { format, subMonths, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface FinanceContextType {
   // Transactions
@@ -150,10 +152,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Default month: Current year and month 'YYYY-MM'
   const currentMonthStr = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    return format(new Date(), 'yyyy-MM');
   }, []);
 
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
@@ -695,7 +694,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const debt = debtsLoans.find((d) => d.id === id);
     if (!debt || debt.status === 'settled') return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     // If an account is specified, register the monetary transaction and adjust account balance
     if (accountId) {
@@ -915,7 +914,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `gastos_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `gastos_export_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -938,7 +937,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gastos_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `gastos_backup_${format(new Date(), 'yyyy-MM-dd')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1048,26 +1047,33 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Monthly trend for the past 6 months (based on allTransactions)
   const monthlyExpenseTrend = useMemo(() => {
     const monthsMap: Record<string, { expenses: number; income: number }> = {};
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const formatMonthKey = (date: Date) => {
+      const str = format(date, 'MMM', { locale: es });
+      return str.charAt(0).toUpperCase() + str.slice(1).replace('.', '');
+    };
 
     // Initialize last 6 months
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${monthNames[d.getMonth()]}`;
+      const d = subMonths(now, i);
+      const key = formatMonthKey(d);
       monthsMap[key] = { expenses: 0, income: 0 };
     }
 
     allTransactions.forEach((tx) => {
       if (!tx.date) return;
-      const d = new Date(tx.date + 'T00:00:00');
-      const key = monthNames[d.getMonth()];
-      if (monthsMap[key]) {
-        if (tx.type === 'expense') {
-          monthsMap[key].expenses += Number(tx.amount) || 0;
-        } else {
-          monthsMap[key].income += Number(tx.amount) || 0;
+      try {
+        const d = parseISO(tx.date + 'T00:00:00');
+        const key = formatMonthKey(d);
+        if (monthsMap[key]) {
+          if (tx.type === 'expense') {
+            monthsMap[key].expenses += Number(tx.amount) || 0;
+          } else {
+            monthsMap[key].income += Number(tx.amount) || 0;
+          }
         }
+      } catch {
+        // ignore invalid dates
       }
     });
 

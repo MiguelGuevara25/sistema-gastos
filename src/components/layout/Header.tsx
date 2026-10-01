@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Menu,
   Plus,
@@ -13,7 +11,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Filter,
   FileText,
 } from 'lucide-react';
 
@@ -25,7 +22,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const {
     activeTab,
     setIsAddModalOpen,
-    isReportModalOpen,
     setIsReportModalOpen,
     setEditingTransaction,
     settings,
@@ -85,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         </Button>
 
         <div className="min-w-0">
-          <h2 className="text-sm sm:text-lg md:text-xl font-bold text-foreground tracking-tight truncate max-w-[130px] sm:max-w-none">
+          <h2 className="text-sm sm:text-lg md:text-xl font-bold text-foreground tracking-tight truncate max-w-32.5 sm:max-w-none">
             {title}
           </h2>
           <p className="text-[11px] text-muted-foreground hidden sm:block">
@@ -112,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent text-[11px] sm:text-xs font-semibold text-foreground cursor-pointer focus:outline-none appearance-none pr-3 sm:pr-4 pl-0.5 sm:pl-1.5 py-1 max-w-[78px] sm:max-w-none truncate"
+              className="bg-transparent text-[11px] sm:text-xs font-semibold text-foreground cursor-pointer focus:outline-none appearance-none pr-3 sm:pr-4 pl-0.5 sm:pl-1.5 py-1 max-w-19.5 sm:max-w-none truncate"
             >
               {availableMonths.map((m) => (
                 <option key={m.value} value={m.value} className="bg-popover text-popover-foreground">

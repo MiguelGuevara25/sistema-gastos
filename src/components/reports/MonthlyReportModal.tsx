@@ -1,15 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Category, Transaction } from '../../types/finance';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogFooter,
@@ -17,19 +14,13 @@ import {
 import {
   Printer,
   FileText,
-  Calendar,
   Wallet,
-  TrendingUp,
-  TrendingDown,
-  Sparkles,
   PieChart,
-  ShieldCheck,
   Receipt,
   HandCoins,
-  CheckCircle2,
-  AlertTriangle,
-  X,
 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface MonthlyReportModalProps {
   isOpen: boolean;
@@ -52,8 +43,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({ isOpen, 
   // Current month string
   const defaultMonth = useMemo(() => {
     if (selectedMonth && selectedMonth !== 'all') return selectedMonth;
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return format(new Date(), 'yyyy-MM');
   }, [selectedMonth]);
 
   const [reportMonth, setReportMonth] = useState<string>(defaultMonth);
@@ -62,12 +52,13 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({ isOpen, 
   const monthLabel = useMemo(() => {
     const item = availableMonths.find((m) => m.value === reportMonth);
     if (item) return item.label;
-    const [y, m] = reportMonth.split('-');
-    const monthNames = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ];
-    return `${monthNames[parseInt(m, 10) - 1] || m} ${y}`;
+    try {
+      const date = parseISO(`${reportMonth}-01`);
+      const formatted = format(date, 'MMMM yyyy', { locale: es });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    } catch {
+      return reportMonth;
+    }
   }, [reportMonth, availableMonths]);
 
   // Transactions of report month
@@ -208,11 +199,9 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({ isOpen, 
     window.print();
   };
 
-  const currentDate = new Date().toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  const currentDate = useMemo(() => {
+    return format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

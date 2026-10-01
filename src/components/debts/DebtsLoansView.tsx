@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { DebtLoan } from '../../types/finance';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,22 +23,21 @@ import {
   Trash2,
   CheckCircle2,
   Clock,
-  Calendar,
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
   Search,
-  AlertCircle,
   Sparkles,
   Users,
   Check,
 } from 'lucide-react';
 
+import { differenceInCalendarDays, parseISO, startOfToday } from 'date-fns';
+import { DebtLoanModal } from './DebtLoanModal';
+
 export const DebtsLoansView: React.FC = () => {
   const {
     debtsLoans,
-    addDebtLoan,
-    updateDebtLoan,
     deleteDebtLoan,
     settleDebtLoan,
     totalLentPending,
@@ -56,14 +55,6 @@ export const DebtsLoansView: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<DebtLoan | null>(null);
   const [settlingDebt, setSettlingDebt] = useState<DebtLoan | null>(null);
-
-  // Form State
-  const [type, setType] = useState<'lent' | 'borrowed'>('lent');
-  const [personName, setPersonName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [accountId, setAccountId] = useState('');
-  const [notes, setNotes] = useState('');
 
   // Settle Form State
   const [settleAccountId, setSettleAccountId] = useState('');
@@ -114,54 +105,13 @@ export const DebtsLoansView: React.FC = () => {
 
   // Handlers for Add / Edit
   const handleOpenAdd = () => {
-    setType('lent');
-    setPersonName('');
-    setAmount('');
-    setDueDate('');
-    setAccountId(accounts[0]?.id || '');
-    setNotes('');
     setEditingDebt(null);
     setIsAddModalOpen(true);
   };
 
   const handleOpenEdit = (debt: DebtLoan) => {
     setEditingDebt(debt);
-    setType(debt.type);
-    setPersonName(debt.personName);
-    setAmount(debt.amount.toString());
-    setDueDate(debt.dueDate || '');
-    setAccountId(debt.accountId || '');
-    setNotes(debt.notes || '');
     setIsAddModalOpen(true);
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseFloat(amount);
-    if (!personName.trim() || isNaN(numAmount) || numAmount <= 0) return;
-
-    if (editingDebt) {
-      updateDebtLoan(editingDebt.id, {
-        type,
-        personName: personName.trim(),
-        amount: numAmount,
-        dueDate: dueDate || undefined,
-        accountId: accountId || undefined,
-        notes: notes.trim() || undefined,
-      });
-    } else {
-      addDebtLoan({
-        type,
-        personName: personName.trim(),
-        amount: numAmount,
-        dueDate: dueDate || undefined,
-        status: 'pending',
-        accountId: accountId || undefined,
-        notes: notes.trim() || undefined,
-      });
-    }
-
-    setIsAddModalOpen(false);
   };
 
   // Handler for Settle
@@ -179,10 +129,8 @@ export const DebtsLoansView: React.FC = () => {
   // Helper for date status
   const getDueStatus = (dateStr?: string) => {
     if (!dateStr) return { text: 'Sin fecha límite', color: 'text-zinc-500', isOverdue: false };
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(dateStr + 'T00:00:00');
-    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const target = parseISO(dateStr + 'T00:00:00');
+    const diffDays = differenceInCalendarDays(target, startOfToday());
 
     if (diffDays < 0) {
       return {
@@ -536,153 +484,14 @@ export const DebtsLoansView: React.FC = () => {
       )}
 
       {/* Add / Edit Debt Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <HandCoins className="size-5 text-primary" />
-              {editingDebt ? 'Editar Préstamo o Deuda' : 'Registrar Préstamo o Deuda'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingDebt
-                ? 'Modifica los datos del préstamo o compromiso.'
-                : 'Controla a quién le prestaste dinero o quién te hizo un préstamo.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSave} className="space-y-4 py-2">
-            {/* Type selector: Lent vs Borrowed */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Tipo de Operación</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setType('lent')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-colors cursor-pointer ${
-                    type === 'lent'
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-semibold'
-                      : 'border-border/60 hover:bg-muted/40 text-muted-foreground'
-                  }`}
-                >
-                  <ArrowUpRight className="size-5 mb-1 text-emerald-400" />
-                  <span className="text-xs">Presté Dinero</span>
-                  <span className="text-[10px] opacity-75">Me deben a mí</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setType('borrowed')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-colors cursor-pointer ${
-                    type === 'borrowed'
-                      ? 'bg-amber-500/10 border-amber-500 text-amber-400 font-semibold'
-                      : 'border-border/60 hover:bg-muted/40 text-muted-foreground'
-                  }`}
-                >
-                  <ArrowDownLeft className="size-5 mb-1 text-amber-400" />
-                  <span className="text-xs">Me Prestaron Dinero</span>
-                  <span className="text-[10px] opacity-75">Yo debo pagar</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Persona */}
-            <div className="space-y-1.5">
-              <Label htmlFor="personName" className="text-xs font-semibold">
-                Nombre de la Persona
-              </Label>
-              <Input
-                id="personName"
-                value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
-                placeholder="Ej. Carlos Gómez, Mamá, Juan Pérez..."
-                required
-                className="text-sm"
-              />
-            </div>
-
-            {/* Monto & Fecha Límite */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="amount" className="text-xs font-semibold">
-                  Monto
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  required
-                  className="text-sm font-semibold"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="dueDate" className="text-xs font-semibold">
-                  Fecha Promesa (Opcional)
-                </Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-            </div>
-
-            {/* Cuenta Asociada (Opcional) */}
-            <div className="space-y-1.5">
-              <Label htmlFor="accountId" className="text-xs font-semibold">
-                Cuenta / Billetera Asociada (Opcional)
-              </Label>
-              <select
-                id="accountId"
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Ninguna / No especificada</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({formatCurrency(acc.balance)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Notas / Motivo */}
-            <div className="space-y-1.5">
-              <Label htmlFor="notes" className="text-xs font-semibold">
-                Motivo / Notas
-              </Label>
-              <Input
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ej. Para repuesto del auto, cena compartida..."
-                className="text-sm"
-              />
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddModalOpen(false)}
-                className="cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="cursor-pointer font-semibold">
-                {editingDebt ? 'Guardar Cambios' : 'Registrar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <DebtLoanModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingDebt(null);
+        }}
+        debtToEdit={editingDebt}
+      />
 
       {/* Settle / Mark as Paid Modal */}
       <Dialog open={!!settlingDebt} onOpenChange={(open) => !open && setSettlingDebt(null)}>

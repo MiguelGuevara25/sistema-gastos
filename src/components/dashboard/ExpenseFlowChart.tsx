@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { BarChart3 } from 'lucide-react';
@@ -71,12 +71,12 @@ export const ExpenseFlowChart: React.FC = () => {
                 <div className="w-full flex items-end justify-center gap-1.5 h-full">
                   {/* Income Bar */}
                   <div
-                    className="w-full max-w-[14px] bg-emerald-500/80 hover:bg-emerald-400 rounded-t-md transition-all duration-300"
+                    className="w-full max-w-3.5 bg-emerald-500/80 hover:bg-emerald-400 rounded-t-md transition-all duration-300"
                     style={{ height: `${incomeHeight}%` }}
                   />
                   {/* Expense Bar */}
                   <div
-                    className="w-full max-w-[14px] bg-rose-500/80 hover:bg-rose-400 rounded-t-md transition-all duration-300"
+                    className="w-full max-w-3.5 bg-rose-500/80 hover:bg-rose-400 rounded-t-md transition-all duration-300"
                     style={{ height: `${expenseHeight}%` }}
                   />
                 </div>
