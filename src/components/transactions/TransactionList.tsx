@@ -132,75 +132,78 @@ export const TransactionList: React.FC = () => {
           </div>
 
           {/* Filter Pills & Selects */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border text-xs">
-            {/* Type Toggle Pills using shadcn Button variants */}
-            <div className="flex items-center p-1 bg-muted rounded-lg gap-1">
-              <button
-                onClick={() => setTypeFilter('all')}
-                className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
-                  typeFilter === 'all'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Todos
-              </button>
-              <button
-                onClick={() => setTypeFilter('expense')}
-                className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
-                  typeFilter === 'expense'
-                    ? 'bg-background text-rose-400 font-semibold shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Solo Gastos
-              </button>
-              <button
-                onClick={() => setTypeFilter('income')}
-                className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
-                  typeFilter === 'income'
-                    ? 'bg-background text-emerald-400 font-semibold shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Solo Ingresos
-              </button>
+          <div className="space-y-2.5 pt-2 border-t border-border text-xs">
+            {/* Type Toggle Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+              <div className="flex items-center p-1 bg-muted rounded-lg gap-1 shrink-0">
+                <button
+                  onClick={() => setTypeFilter('all')}
+                  className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
+                    typeFilter === 'all'
+                      ? 'bg-background text-foreground font-semibold shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setTypeFilter('expense')}
+                  className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
+                    typeFilter === 'expense'
+                      ? 'bg-background text-rose-400 font-semibold shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Gastos
+                </button>
+                <button
+                  onClick={() => setTypeFilter('income')}
+                  className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer ${
+                    typeFilter === 'income'
+                      ? 'bg-background text-emerald-400 font-semibold shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Ingresos
+                </button>
+              </div>
             </div>
 
-            {/* Category Dropdown */}
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
-            >
-              <option value="all" className="bg-popover text-popover-foreground">Todas las Categorías</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {/* Dropdowns in responsive grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Category Dropdown */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
+              >
+                <option value="all" className="bg-popover text-popover-foreground">Todas las Categorías</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
 
-            {/* Payment Method Dropdown */}
-            <select
-              value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
-            >
-              <option value="all" className="bg-popover text-popover-foreground">Todos los Métodos</option>
-              {Object.entries(PAYMENT_METHOD_LABELS).map(([k, label]) => (
-                <option key={k} value={k} className="bg-popover text-popover-foreground">
-                  {label}
-                </option>
-              ))}
-            </select>
+              {/* Payment Method Dropdown */}
+              <select
+                value={methodFilter}
+                onChange={(e) => setMethodFilter(e.target.value)}
+                className="w-full h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
+              >
+                <option value="all" className="bg-popover text-popover-foreground">Todos los Métodos</option>
+                {Object.entries(PAYMENT_METHOD_LABELS).map(([k, label]) => (
+                  <option key={k} value={k} className="bg-popover text-popover-foreground">
+                    {label}
+                  </option>
+                ))}
+              </select>
 
-            {/* Sort Order */}
-            <div className="ml-auto">
+              {/* Sort Order */}
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as any)}
-                className="h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
+                className="w-full h-8 px-2.5 bg-muted/40 border border-input rounded-lg text-foreground text-xs focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 <option value="newest" className="bg-popover text-popover-foreground">Más recientes primero</option>
                 <option value="oldest" className="bg-popover text-popover-foreground">Más antiguos primero</option>
@@ -246,25 +249,25 @@ export const TransactionList: React.FC = () => {
               return (
                 <div
                   key={tx.id}
-                  className="p-4 sm:px-6 hover:bg-muted/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  className="p-3 sm:p-4 sm:px-6 hover:bg-muted/40 transition-colors flex items-center justify-between gap-2.5 sm:gap-4 group"
                 >
                   {/* Left: Icon + Info */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-border mt-0.5 sm:mt-0"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border border-border"
                       style={{ backgroundColor: `${cat.color}15` }}
                     >
-                      <CategoryIcon name={cat.icon} color={cat.color} size={18} />
+                      <CategoryIcon name={cat.icon} color={cat.color} size={16} />
                     </div>
 
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground truncate">
+                    <div className="min-w-0 space-y-0.5 sm:space-y-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
                           {tx.description}
                         </span>
                         <Badge
                           variant={isExpense ? 'destructive' : 'default'}
-                          className={`text-[10px] font-semibold px-2 py-0 ${
+                          className={`text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0 shrink-0 ${
                             !isExpense ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : ''
                           }`}
                         >
@@ -272,36 +275,21 @@ export const TransactionList: React.FC = () => {
                         </Badge>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Tag className="size-3 text-muted-foreground" />
-                          {cat.name}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 text-[10px] sm:text-xs text-muted-foreground">
+                        <span className="truncate max-w-[90px] sm:max-w-none">{cat.name}</span>
                         <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="size-3 text-muted-foreground" />
-                          {tx.date}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <CreditCard className="size-3 text-muted-foreground" />
-                          {PAYMENT_METHOD_LABELS[tx.paymentMethod] || tx.paymentMethod}
-                        </span>
+                        <span>{tx.date}</span>
+                        <span className="hidden xs:inline">•</span>
+                        <span className="hidden xs:inline">{PAYMENT_METHOD_LABELS[tx.paymentMethod] || tx.paymentMethod}</span>
                       </div>
-
-                      {tx.notes && (
-                        <p className="text-xs text-muted-foreground italic line-clamp-1 pt-0.5">
-                          "{tx.notes}"
-                        </p>
-                      )}
                     </div>
                   </div>
 
                   {/* Right: Amount & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pl-13 sm:pl-0">
-                    <div className="text-left sm:text-right">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <div className="text-right">
                       <span
-                        className={`text-base font-bold ${
+                        className={`text-xs sm:text-base font-bold whitespace-nowrap ${
                           isExpense ? 'text-foreground' : 'text-emerald-400'
                         }`}
                       >
@@ -310,8 +298,8 @@ export const TransactionList: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Action buttons with shadcn Button */}
-                    <div className="flex items-center gap-1">
+                    {/* Action buttons */}
+                    <div className="flex items-center">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -320,9 +308,9 @@ export const TransactionList: React.FC = () => {
                           setIsAddModalOpen(true);
                         }}
                         title="Editar movimiento"
-                        className="size-8 cursor-pointer text-muted-foreground hover:text-foreground"
+                        className="size-7 sm:size-8 cursor-pointer text-muted-foreground hover:text-foreground"
                       >
-                        <Edit2 className="size-3.5" />
+                        <Edit2 className="size-3 sm:size-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -333,9 +321,9 @@ export const TransactionList: React.FC = () => {
                           }
                         }}
                         title="Eliminar movimiento"
-                        className="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                        className="size-7 sm:size-8 cursor-pointer text-muted-foreground hover:text-destructive"
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-3 sm:size-3.5" />
                       </Button>
                     </div>
                   </div>

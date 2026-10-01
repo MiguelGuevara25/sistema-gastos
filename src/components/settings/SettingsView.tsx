@@ -17,7 +17,9 @@ import {
   Check,
   AlertCircle,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
+import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -180,6 +182,33 @@ export const SettingsView: React.FC = () => {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Mobile App PWA Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Smartphone className="size-4 text-primary" />
+            Aplicación Móvil (PWA)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Instala Finanza en tu iPhone, Android o PC para tener acceso instantáneo a pantalla completa y sin barras de navegación.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/20 border border-border">
+            <div className="space-y-0.5">
+              <p className="text-xs font-semibold text-foreground">
+                Instalación Directa y Segura
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                No necesitas descargar nada de la App Store ni Google Play. Funciona como una Web App Progresiva instalable.
+              </p>
+            </div>
+            <PwaInstallPrompt />
+          </div>
         </CardContent>
       </Card>
 

@@ -1,4 +1,4 @@
-import { Transaction, UserSettings } from '../types/finance';
+import { Transaction, UserSettings, Account, SavingsGoal, RecurringExpense, DebtLoan } from '../types/finance';
 
 // Helper to get formatted date string for relative days
 const getDateAgo = (daysAgo: number): string => {
@@ -6,6 +6,192 @@ const getDateAgo = (daysAgo: number): string => {
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().split('T')[0];
 };
+
+export const DEFAULT_DEBTS: DebtLoan[] = [
+  {
+    id: 'debt-1',
+    type: 'lent',
+    personName: 'Carlos Gómez (Hermano)',
+    amount: 250,
+    dueDate: getDateAgo(-10),
+    status: 'pending',
+    notes: 'Préstamo para repuesto de moto',
+    createdAt: getDateAgo(5),
+  },
+  {
+    id: 'debt-2',
+    type: 'lent',
+    personName: 'Lucía Mendoza (Compañera)',
+    amount: 85,
+    dueDate: getDateAgo(-3),
+    status: 'pending',
+    notes: 'Almuerzo de equipo y taxi',
+    createdAt: getDateAgo(3),
+  },
+  {
+    id: 'debt-3',
+    type: 'borrowed',
+    personName: 'Juan Pablo R.',
+    amount: 150,
+    dueDate: getDateAgo(-14),
+    status: 'pending',
+    notes: 'Préstamo para compra de materiales urgentes',
+    createdAt: getDateAgo(8),
+  },
+];
+
+export const DEFAULT_RECURRING: RecurringExpense[] = [
+  {
+    id: 'rec-1',
+    name: 'Alquiler Departamento',
+    amount: 950,
+    categoryId: 'cat-vivienda',
+    paymentMethod: 'transferencia',
+    accountId: 'acc-bcp',
+    dueDay: 1,
+    frequency: 'monthly',
+    notes: 'Pago mensual al arrendador',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-2',
+    name: 'Internet Fibra Óptica',
+    amount: 110,
+    categoryId: 'cat-servicios',
+    paymentMethod: 'tarjeta_debito',
+    accountId: 'acc-interbank',
+    dueDay: 10,
+    frequency: 'monthly',
+    notes: 'Recibo Claro 300Mbps',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-3',
+    name: 'Servicio de Luz (Enel)',
+    amount: 85,
+    categoryId: 'cat-servicios',
+    paymentMethod: 'tarjeta_debito',
+    accountId: 'acc-bcp',
+    dueDay: 15,
+    frequency: 'monthly',
+    notes: 'Recibo mensual de electricidad',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-4',
+    name: 'Membresía Gimnasio',
+    amount: 129,
+    categoryId: 'cat-salud',
+    paymentMethod: 'tarjeta_debito',
+    accountId: 'acc-interbank',
+    dueDay: 20,
+    frequency: 'monthly',
+    notes: 'Débito automático gimnasio',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-5',
+    name: 'Netflix & Spotify',
+    amount: 49.90,
+    categoryId: 'cat-entretenimiento',
+    paymentMethod: 'tarjeta_credito',
+    accountId: 'acc-tarjeta-credito',
+    dueDay: 25,
+    frequency: 'monthly',
+    notes: 'Suscripciones streaming',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEFAULT_ACCOUNTS: Account[] = [
+  {
+    id: 'acc-yape',
+    name: 'Yape',
+    type: 'wallet',
+    balance: 185.50,
+    color: '#8b5cf6',
+    icon: 'Smartphone',
+  },
+  {
+    id: 'acc-plin',
+    name: 'Plin',
+    type: 'wallet',
+    balance: 70.00,
+    color: '#06b6d4',
+    icon: 'Smartphone',
+  },
+  {
+    id: 'acc-bcp',
+    name: 'BCP Débito',
+    type: 'bank',
+    balance: 2450.00,
+    color: '#f97316',
+    icon: 'Landmark',
+    accountNumber: '*4821',
+  },
+  {
+    id: 'acc-interbank',
+    name: 'Interbank Cuenta Sueldo',
+    type: 'bank',
+    balance: 890.00,
+    color: '#10b981',
+    icon: 'Landmark',
+    accountNumber: '*9314',
+  },
+  {
+    id: 'acc-efectivo',
+    name: 'Efectivo en Billetera',
+    type: 'cash',
+    balance: 195.00,
+    color: '#f59e0b',
+    icon: 'Coins',
+  },
+  {
+    id: 'acc-tarjeta-credito',
+    name: 'Tarjeta de Crédito BCP',
+    type: 'credit',
+    balance: -285.00,
+    color: '#f43f5e',
+    icon: 'CreditCard',
+    accountNumber: '*3022',
+  },
+];
+
+export const DEFAULT_GOALS: SavingsGoal[] = [
+  {
+    id: 'goal-1',
+    name: 'Fondo de Emergencia (3 meses)',
+    targetAmount: 4500,
+    currentAmount: 2600,
+    color: '#10b981',
+    category: 'Seguridad',
+    icon: 'ShieldCheck',
+    targetDate: '2026-12-31',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'goal-2',
+    name: 'Viaje Fin de Año',
+    targetAmount: 2200,
+    currentAmount: 1450,
+    color: '#8b5cf6',
+    category: 'Vacaciones',
+    icon: 'Plane',
+    targetDate: '2026-11-30',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'goal-3',
+    name: 'Fondo Inversión / S&P500',
+    targetAmount: 3500,
+    currentAmount: 1200,
+    color: '#06b6d4',
+    category: 'Inversión',
+    icon: 'TrendingUp',
+    targetDate: '2027-03-31',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export const DEFAULT_SETTINGS: UserSettings = {
   currency: 'S/.',

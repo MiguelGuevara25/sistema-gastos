@@ -19,6 +19,10 @@ import {
   Sparkles,
   TrendingDown,
   TrendingUp,
+  Target,
+  Receipt,
+  HandCoins,
+  FileText,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen 
     activeTab,
     setActiveTab,
     setIsAddModalOpen,
+    setIsReportModalOpen,
     setEditingTransaction,
     netBalance,
     totalIncome,
@@ -42,8 +47,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen 
   const navItems: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Panel General', icon: LayoutDashboard },
     { id: 'transactions', label: 'Movimientos', icon: ArrowLeftRight },
+    { id: 'wallets', label: 'Billeteras & Cuentas', icon: Wallet },
+    { id: 'recurring', label: 'Gastos Fijos', icon: Receipt },
+    { id: 'debts', label: 'Deudas & Préstamos', icon: HandCoins },
     { id: 'budgets', label: 'Presupuestos', icon: PieChart },
+    { id: 'goals', label: 'Metas de Ahorro', icon: Target },
     { id: 'analytics', label: 'Estadísticas', icon: BarChart3 },
+    { id: 'advisor', label: 'Simulador & Tips', icon: Sparkles },
     { id: 'settings', label: 'Configuración', icon: Settings },
   ];
 
@@ -129,6 +139,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen 
               );
             })}
           </nav>
+
+          {/* Quick Access to Monthly Executive Report */}
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsReportModalOpen(true);
+                setIsMobileOpen(false);
+              }}
+              className="w-full justify-start gap-2.5 h-9 px-3 text-xs font-semibold cursor-pointer border-dashed border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+            >
+              <FileText className="size-4" />
+              <span>Reporte Mensual (PDF)</span>
+            </Button>
+          </div>
 
           {/* Quick Balance Summary Card with shadcn Card */}
           <div className="mt-auto pt-4">

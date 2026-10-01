@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowDownRight, ArrowUpRight, Check, Calendar, CreditCard, Tag, FileText } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Check, Calendar, CreditCard, Tag, FileText, Wallet } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS } from '../../data/categories';
 
 export const TransactionModal: React.FC = () => {
@@ -29,6 +29,8 @@ export const TransactionModal: React.FC = () => {
     updateTransaction,
     categories,
     settings,
+    accounts,
+    formatCurrency,
   } = useFinance();
 
   const [type, setType] = useState<TransactionType>('expense');
@@ -37,6 +39,7 @@ export const TransactionModal: React.FC = () => {
   const [categoryId, setCategoryId] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('tarjeta_debito');
+  const [accountId, setAccountId] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [error, setError] = useState<string>('');
 
@@ -48,6 +51,7 @@ export const TransactionModal: React.FC = () => {
       setCategoryId(editingTransaction.categoryId);
       setDate(editingTransaction.date);
       setPaymentMethod(editingTransaction.paymentMethod);
+      setAccountId(editingTransaction.accountId || '');
       setNotes(editingTransaction.notes || '');
     } else {
       setType('expense');
@@ -57,10 +61,11 @@ export const TransactionModal: React.FC = () => {
       setCategoryId(defaultExpCat ? defaultExpCat.id : '');
       setDate(new Date().toISOString().split('T')[0]);
       setPaymentMethod('tarjeta_debito');
+      setAccountId(accounts[0]?.id || '');
       setNotes('');
     }
     setError('');
-  }, [editingTransaction, isAddModalOpen, categories]);
+  }, [editingTransaction, isAddModalOpen, categories, accounts]);
 
   const handleTypeChange = (newType: TransactionType) => {
     setType(newType);
@@ -102,6 +107,7 @@ export const TransactionModal: React.FC = () => {
         categoryId,
         date,
         paymentMethod,
+        accountId: accountId || undefined,
         notes: notes.trim(),
       });
     } else {
@@ -112,6 +118,7 @@ export const TransactionModal: React.FC = () => {
         categoryId,
         date,
         paymentMethod,
+        accountId: accountId || undefined,
         notes: notes.trim(),
       });
     }
@@ -123,9 +130,9 @@ export const TransactionModal: React.FC = () => {
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto p-6 gap-5">
+      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 gap-4 sm:gap-5 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">
+          <DialogTitle className="text-base sm:text-lg font-bold">
             {editingTransaction ? 'Editar Movimiento' : 'Nuevo Movimiento'}
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -206,7 +213,7 @@ export const TransactionModal: React.FC = () => {
               <Tag className="size-3.5" />
               Categoría
             </Label>
-            <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto p-1 border border-border rounded-xl bg-muted/20">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2 max-h-36 overflow-y-auto p-1.5 border border-border rounded-xl bg-muted/20">
               {filteredCategories.map((cat) => {
                 const isSelected = categoryId === cat.id;
                 return (
@@ -233,8 +240,8 @@ export const TransactionModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Date & Payment Method */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Date, Payment Method & Wallet / Account */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Calendar className="size-3.5" />
@@ -256,11 +263,30 @@ export const TransactionModal: React.FC = () => {
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-sm text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
+                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
                   <option key={key} value={key} className="bg-popover text-popover-foreground">
                     {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Wallet className="size-3.5" />
+                Cuenta / Billetera
+              </Label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
+              >
+                <option value="">-- Sin cuenta --</option>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id} className="bg-popover text-popover-foreground">
+                    {acc.name} ({formatCurrency(acc.balance)})
                   </option>
                 ))}
               </select>
