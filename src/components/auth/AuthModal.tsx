@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useFinance } from "../../context/FinanceContext";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 
 interface AuthModalProps {
@@ -38,6 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { user, signOut, isCloudSyncing, syncLocalDataToCloud } = useFinance();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,6 +150,83 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(false);
     }
   };
+
+  if (user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent className="w-[95vw] sm:max-w-md p-6 rounded-2xl">
+          <DialogHeader className="space-y-1.5 text-center sm:text-left">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-[11px] gap-1 text-emerald-400 border-emerald-500/30">
+                <ShieldCheck className="size-3" /> Supabase Cloud Conectado
+              </Badge>
+            </div>
+            <DialogTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <User className="size-5 text-emerald-400" /> Mi Cuenta
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Tu sesión está activa y tus datos están respaldados en la nube.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                {user.email?.charAt(0).toUpperCase() || "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-foreground truncate">
+                  {user.user_metadata?.full_name || "Usuario"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span>Estado del respaldo:</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {isCloudSyncing ? "Sincronizando..." : "Sincronizado en la Nube"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Identificador de usuario:</span>
+                <span className="font-mono text-[10px] text-foreground/80">{user.id.slice(0, 16)}...</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isCloudSyncing}
+              onClick={() => syncLocalDataToCloud()}
+              className="cursor-pointer gap-1.5 text-xs font-semibold"
+            >
+              <RefreshCw className={`size-3.5 ${isCloudSyncing ? "animate-spin" : ""}`} />
+              <span>{isCloudSyncing ? "Sincronizando..." : "Sincronizar ahora"}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={async () => {
+                await signOut();
+                handleClose();
+              }}
+              className="cursor-pointer gap-1.5 text-xs font-semibold"
+            >
+              <LogOut className="size-3.5" />
+              <span>Cerrar Sesión</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>

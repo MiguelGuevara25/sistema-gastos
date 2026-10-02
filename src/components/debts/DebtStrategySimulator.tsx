@@ -64,7 +64,7 @@ export const DebtStrategySimulator: React.FC = () => {
                 <Input
                   type="number"
                   min="0"
-                  step="20"
+                  step="any"
                   value={extraPayment}
                   onChange={(e) => setExtraPayment(Number(e.target.value) || 0)}
                   className="h-8 w-28 text-xs font-mono font-bold pr-2"

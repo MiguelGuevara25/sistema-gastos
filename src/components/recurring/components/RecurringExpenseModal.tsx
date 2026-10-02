@@ -152,8 +152,8 @@ export const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
               </Label>
               <Input
                 type="number"
-                step="0.10"
-                min="0.10"
+                step="any"
+                min="0"
                 placeholder="150.00"
                 {...register("amount", { required: true })}
                 className="h-9 text-xs"

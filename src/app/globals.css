@@ -173,6 +173,14 @@ body {
   }
 }
 
+/* Modal Open: Freeze background completely */
+html:has([data-slot="dialog-overlay"]),
+body:has([data-slot="dialog-overlay"]) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
 @media print {
   @page {
     size: A4 portrait;

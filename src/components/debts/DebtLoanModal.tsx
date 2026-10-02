@@ -196,7 +196,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
               <Input
                 id="amount"
                 type="number"
-                step="0.01"
+                step="any"
                 min="0.01"
                 {...register("amount", { required: true })}
                 placeholder="0.00"
@@ -233,7 +233,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
                   <Input
                     id="interestRate"
                     type="number"
-                    step="0.1"
+                    step="any"
                     min="0"
                     placeholder="Ej. 24.5"
                     {...register("interestRate")}
@@ -247,7 +247,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
                   <Input
                     id="minimumPayment"
                     type="number"
-                    step="1"
+                    step="any"
                     min="0"
                     placeholder="Ej. 100"
                     {...register("minimumPayment")}

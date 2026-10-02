@@ -217,7 +217,8 @@ export const SettingsView: React.FC = () => {
                 </Label>
                 <Input
                   type="number"
-                  step="50"
+                  step="any"
+                  min="0"
                   {...register("monthlyBudget")}
                   className="h-10 bg-muted/40 font-mono font-semibold"
                 />
@@ -230,8 +231,8 @@ export const SettingsView: React.FC = () => {
                 </Label>
                 <Input
                   type="number"
-                  step="1"
-                  min="1"
+                  step="any"
+                  min="0"
                   {...register("phantomExpenseThreshold")}
                   className="h-10 bg-muted/40 font-mono font-semibold"
                 />

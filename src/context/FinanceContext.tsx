@@ -12,6 +12,7 @@ import React, {
 import type { User } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { supabaseService } from "../lib/supabase-service";
+import { generateUUID, isValidUUID } from "../lib/utils";
 import {
   Transaction,
   Category,
@@ -396,14 +397,89 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsCloudSyncing(true);
       const data = await supabaseService.fetchAllUserData(userId);
       if (data) {
-        setAccounts(data.accounts || []);
-        setAllTransactions(data.transactions || []);
-        setRecurringExpenses(data.recurring || []);
-        setDebtsLoans(data.debts || []);
-        setGoals(data.goals || []);
-        setChallenges(data.challenges || []);
-        if (data.settings) setSettings(data.settings);
-        if (data.categories.length > 0) setCategories(data.categories);
+        // Accounts: if cloud has them, use them; if not, upload local accounts
+        if (data.accounts && data.accounts.length > 0) {
+          setAccounts(data.accounts);
+          localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(data.accounts));
+        } else {
+          const localAccs = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
+          const parsedAccs: Account[] = localAccs ? JSON.parse(localAccs) : [];
+          if (parsedAccs.length > 0) {
+            for (const acc of parsedAccs) {
+              await supabaseService.upsertAccount(userId, acc).catch(console.error);
+            }
+          }
+        }
+
+        // Transactions: if cloud has them, use them; if not, upload local transactions
+        if (data.transactions && data.transactions.length > 0) {
+          setAllTransactions(data.transactions);
+          localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(data.transactions));
+        } else {
+          const localTxs = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+          const parsedTxs: Transaction[] = localTxs ? JSON.parse(localTxs) : [];
+          if (parsedTxs.length > 0) {
+            for (const tx of parsedTxs) {
+              await supabaseService.insertTransaction(userId, tx).catch(console.error);
+            }
+          }
+        }
+
+        // Recurring expenses
+        if (data.recurring && data.recurring.length > 0) {
+          setRecurringExpenses(data.recurring);
+          localStorage.setItem(STORAGE_KEYS.RECURRING, JSON.stringify(data.recurring));
+        } else {
+          const localRec = localStorage.getItem(STORAGE_KEYS.RECURRING);
+          const parsedRec: RecurringExpense[] = localRec ? JSON.parse(localRec) : [];
+          if (parsedRec.length > 0) {
+            for (const rec of parsedRec) {
+              await supabaseService.upsertRecurring(userId, rec).catch(console.error);
+            }
+          }
+        }
+
+        // Debts
+        if (data.debts && data.debts.length > 0) {
+          setDebtsLoans(data.debts);
+          localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(data.debts));
+        } else {
+          const localDebts = localStorage.getItem(STORAGE_KEYS.DEBTS);
+          const parsedDebts: DebtLoan[] = localDebts ? JSON.parse(localDebts) : [];
+          if (parsedDebts.length > 0) {
+            for (const debt of parsedDebts) {
+              await supabaseService.upsertDebt(userId, debt).catch(console.error);
+            }
+          }
+        }
+
+        // Goals
+        if (data.goals && data.goals.length > 0) {
+          setGoals(data.goals);
+          localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(data.goals));
+        } else {
+          const localGoals = localStorage.getItem(STORAGE_KEYS.GOALS);
+          const parsedGoals: SavingsGoal[] = localGoals ? JSON.parse(localGoals) : [];
+          if (parsedGoals.length > 0) {
+            for (const goal of parsedGoals) {
+              await supabaseService.upsertGoal(userId, goal).catch(console.error);
+            }
+          }
+        }
+
+        // Challenges
+        if (data.challenges && data.challenges.length > 0) {
+          setChallenges(data.challenges);
+          localStorage.setItem(STORAGE_KEYS.CHALLENGES, JSON.stringify(data.challenges));
+        }
+
+        if (data.settings) {
+          setSettings(data.settings);
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
+        }
+        if (data.categories.length > 0) {
+          setCategories(data.categories);
+        }
         loadedUserRef.current = userId;
       }
     } catch (err) {
@@ -426,8 +502,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (event === "SIGNED_OUT" || !currentUser) {
         loadedUserRef.current = null;
-      } else if (currentUser && loadedUserRef.current !== currentUser.id) {
-        await loadCloudData(currentUser.id);
+      } else if (currentUser) {
+        setIsDemoMode(false);
+        if (loadedUserRef.current !== currentUser.id) {
+          await loadCloudData(currentUser.id);
+        }
       }
     });
 
@@ -458,15 +537,68 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       const storedRecurring = localStorage.getItem(STORAGE_KEYS.RECURRING);
       const storedDebts = localStorage.getItem(STORAGE_KEYS.DEBTS);
 
-      if (storedTransactions) {
-        setAllTransactions(JSON.parse(storedTransactions));
-      } else {
-        setAllTransactions(INITIAL_TRANSACTIONS);
-        localStorage.setItem(
-          STORAGE_KEYS.TRANSACTIONS,
-          JSON.stringify(INITIAL_TRANSACTIONS),
-        );
+      // 1. Accounts: migrate any legacy IDs to UUID
+      const accountIdMap = new Map<string, string>();
+      let finalAccounts: Account[] = DEFAULT_ACCOUNTS;
+      if (storedAccounts) {
+        try {
+          const rawAccounts: Account[] = JSON.parse(storedAccounts);
+          let changed = false;
+          finalAccounts = rawAccounts.map((a) => {
+            if (!isValidUUID(a.id)) {
+              const newId = generateUUID();
+              accountIdMap.set(a.id, newId);
+              changed = true;
+              return { ...a, id: newId };
+            }
+            return a;
+          });
+          if (changed) {
+            localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(finalAccounts));
+          }
+        } catch {
+          finalAccounts = DEFAULT_ACCOUNTS;
+        }
       }
+      setAccounts(finalAccounts);
+
+      // 2. Transactions: migrate legacy IDs & mapped accountIds
+      let finalTransactions: Transaction[] = INITIAL_TRANSACTIONS;
+      if (storedTransactions) {
+        try {
+          const rawTxs: Transaction[] = JSON.parse(storedTransactions);
+          let changed = false;
+          finalTransactions = rawTxs.map((t) => {
+            let itemChanged = false;
+            let targetId = t.id;
+            let targetAccId = t.accountId;
+
+            if (!isValidUUID(t.id)) {
+              targetId = generateUUID();
+              itemChanged = true;
+            }
+            if (t.accountId && accountIdMap.has(t.accountId)) {
+              targetAccId = accountIdMap.get(t.accountId);
+              itemChanged = true;
+            } else if (t.accountId && !isValidUUID(t.accountId)) {
+              targetAccId = undefined;
+              itemChanged = true;
+            }
+
+            if (itemChanged) {
+              changed = true;
+              return { ...t, id: targetId, accountId: targetAccId };
+            }
+            return t;
+          });
+          if (changed) {
+            localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(finalTransactions));
+          }
+        } catch {
+          finalTransactions = INITIAL_TRANSACTIONS;
+        }
+      }
+      setAllTransactions(finalTransactions);
 
       if (storedSettings) {
         const parsed = JSON.parse(storedSettings);
@@ -497,22 +629,27 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       }
 
-      if (storedAccounts) {
-        setAccounts(JSON.parse(storedAccounts));
-      } else {
-        setAccounts(DEFAULT_ACCOUNTS);
-        localStorage.setItem(
-          STORAGE_KEYS.ACCOUNTS,
-          JSON.stringify(DEFAULT_ACCOUNTS),
-        );
-      }
-
+      // 3. Goals: ensure valid UUID
+      let finalGoals: SavingsGoal[] = DEFAULT_GOALS;
       if (storedGoals) {
-        setGoals(JSON.parse(storedGoals));
-      } else {
-        setGoals(DEFAULT_GOALS);
-        localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(DEFAULT_GOALS));
+        try {
+          const rawGoals: SavingsGoal[] = JSON.parse(storedGoals);
+          let changed = false;
+          finalGoals = rawGoals.map((g) => {
+            if (!isValidUUID(g.id)) {
+              changed = true;
+              return { ...g, id: generateUUID() };
+            }
+            return g;
+          });
+          if (changed) {
+            localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(finalGoals));
+          }
+        } catch {
+          finalGoals = DEFAULT_GOALS;
+        }
       }
+      setGoals(finalGoals);
 
       if (storedChallenges) {
         setChallenges(JSON.parse(storedChallenges));
@@ -524,22 +661,77 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       }
 
+      // 4. Recurring expenses: ensure valid UUID & map accountId
+      let finalRecurring: RecurringExpense[] = DEFAULT_RECURRING;
       if (storedRecurring) {
-        setRecurringExpenses(JSON.parse(storedRecurring));
-      } else {
-        setRecurringExpenses(DEFAULT_RECURRING);
-        localStorage.setItem(
-          STORAGE_KEYS.RECURRING,
-          JSON.stringify(DEFAULT_RECURRING),
-        );
+        try {
+          const rawRec: RecurringExpense[] = JSON.parse(storedRecurring);
+          let changed = false;
+          finalRecurring = rawRec.map((r) => {
+            let itemChanged = false;
+            let targetId = r.id;
+            let targetAccId = r.accountId;
+            if (!isValidUUID(r.id)) {
+              targetId = generateUUID();
+              itemChanged = true;
+            }
+            if (r.accountId && accountIdMap.has(r.accountId)) {
+              targetAccId = accountIdMap.get(r.accountId);
+              itemChanged = true;
+            } else if (r.accountId && !isValidUUID(r.accountId)) {
+              targetAccId = undefined;
+              itemChanged = true;
+            }
+            if (itemChanged) {
+              changed = true;
+              return { ...r, id: targetId, accountId: targetAccId };
+            }
+            return r;
+          });
+          if (changed) {
+            localStorage.setItem(STORAGE_KEYS.RECURRING, JSON.stringify(finalRecurring));
+          }
+        } catch {
+          finalRecurring = DEFAULT_RECURRING;
+        }
       }
+      setRecurringExpenses(finalRecurring);
 
+      // 5. Debts & Loans: ensure valid UUID & map accountId
+      let finalDebts: DebtLoan[] = DEFAULT_DEBTS;
       if (storedDebts) {
-        setDebtsLoans(JSON.parse(storedDebts));
-      } else {
-        setDebtsLoans(DEFAULT_DEBTS);
-        localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(DEFAULT_DEBTS));
+        try {
+          const rawDebts: DebtLoan[] = JSON.parse(storedDebts);
+          let changed = false;
+          finalDebts = rawDebts.map((d) => {
+            let itemChanged = false;
+            let targetId = d.id;
+            let targetAccId = d.accountId;
+            if (!isValidUUID(d.id)) {
+              targetId = generateUUID();
+              itemChanged = true;
+            }
+            if (d.accountId && accountIdMap.has(d.accountId)) {
+              targetAccId = accountIdMap.get(d.accountId);
+              itemChanged = true;
+            } else if (d.accountId && !isValidUUID(d.accountId)) {
+              targetAccId = undefined;
+              itemChanged = true;
+            }
+            if (itemChanged) {
+              changed = true;
+              return { ...d, id: targetId, accountId: targetAccId };
+            }
+            return d;
+          });
+          if (changed) {
+            localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(finalDebts));
+          }
+        } catch {
+          finalDebts = DEFAULT_DEBTS;
+        }
       }
+      setDebtsLoans(finalDebts);
     } catch (e) {
       console.error("Error loading data from localStorage", e);
       setAllTransactions(INITIAL_TRANSACTIONS);
@@ -804,17 +996,27 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Add / Edit / Delete Transactions with Account Balances & Installments
   const addTransaction = (data: Omit<Transaction, "id" | "createdAt">) => {
+    const validAccId = isValidUUID(data.accountId) ? data.accountId : undefined;
     const newTx: Transaction = {
       ...data,
-      id: "tx-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      id: generateUUID(),
+      accountId: validAccId,
       currency:
         data.currency ||
-        accounts.find((a) => a.id === data.accountId)?.currency ||
+        accounts.find((a) => a.id === validAccId)?.currency ||
         settings.currencyCode,
       createdAt: new Date().toISOString(),
     };
 
     saveTransactions([newTx, ...allTransactions]);
+
+    // If new transaction date is in another month, auto-switch selectedMonth so the user sees it immediately
+    if (newTx.date && newTx.date.length >= 7) {
+      const txMonth = newTx.date.substring(0, 7);
+      if (selectedMonth !== "all" && selectedMonth !== txMonth) {
+        setSelectedMonth(txMonth);
+      }
+    }
 
     if (user) {
       supabaseService.insertTransaction(user.id, newTx).catch((err) =>
@@ -943,8 +1145,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const addAccount = (data: Omit<Account, "id">) => {
     const newAcc: Account = {
       ...data,
-      id:
-        "acc-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      id: generateUUID(),
       currency: data.currency || settings.currencyCode,
     };
     saveAccounts([...accounts, newAcc]);
@@ -1035,7 +1236,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     saveAccounts(updatedAccounts);
 
     const transferTx: Transaction = {
-      id: "tx-trf-" + Date.now(),
+      id: generateUUID(),
       description: `Transferencia: ${fromAcc.name} ➔ ${toAcc.name}`,
       amount: data.amount,
       type: "expense",
@@ -1125,8 +1326,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const addGoal = (goal: Omit<SavingsGoal, "id" | "createdAt">) => {
     const newGoal: SavingsGoal = {
       ...goal,
-      id:
-        "goal-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      id: generateUUID(),
       currency: goal.currency || settings.currencyCode,
       createdAt: new Date().toISOString(),
     };
@@ -1364,8 +1564,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     const newExp: RecurringExpense = {
       ...expense,
-      id:
-        "rec-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      id: generateUUID(),
+      accountId: isValidUUID(expense.accountId) ? expense.accountId : undefined,
       currency: expense.currency || settings.currencyCode,
       createdAt: new Date().toISOString(),
     };
@@ -1438,8 +1638,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const addDebtLoan = (debt: Omit<DebtLoan, "id" | "createdAt">) => {
     const newDebt: DebtLoan = {
       ...debt,
-      id:
-        "debt-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      id: generateUUID(),
+      accountId: isValidUUID(debt.accountId) ? debt.accountId : undefined,
       currency: debt.currency || settings.currencyCode,
       createdAt: new Date().toISOString(),
     };

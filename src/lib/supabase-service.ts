@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { isValidUUID, generateUUID } from "./utils";
 import {
   Transaction,
   Account,
@@ -30,19 +31,19 @@ export const mapAccountFromDB = (row: any): Account => ({
 });
 
 export const mapAccountToDB = (userId: string, acc: Partial<Account>) => ({
-  ...(acc.id ? { id: acc.id } : {}),
+  id: isValidUUID(acc.id) ? acc.id : generateUUID(),
   user_id: userId,
   name: acc.name,
   type: acc.type,
-  balance: acc.balance,
+  balance: acc.balance ?? 0,
   color: acc.color,
   icon: acc.icon,
-  account_number: acc.accountNumber,
+  account_number: acc.accountNumber || null,
   currency: acc.currency || "PEN",
-  credit_limit: acc.creditLimit,
-  closing_day: acc.closingDay,
-  due_day: acc.dueDay,
-  apr: acc.apr,
+  credit_limit: acc.creditLimit || null,
+  closing_day: acc.closingDay || null,
+  due_day: acc.dueDay || null,
+  apr: acc.apr || null,
 });
 
 export const mapTransactionFromDB = (row: any): Transaction => ({
@@ -63,7 +64,7 @@ export const mapTransactionFromDB = (row: any): Transaction => ({
 });
 
 export const mapTransactionToDB = (userId: string, tx: Transaction) => ({
-  id: tx.id,
+  id: isValidUUID(tx.id) ? tx.id : generateUUID(),
   user_id: userId,
   description: tx.description,
   amount: tx.amount,
@@ -71,7 +72,7 @@ export const mapTransactionToDB = (userId: string, tx: Transaction) => ({
   category_id: tx.categoryId,
   date: tx.date,
   payment_method: tx.paymentMethod,
-  account_id: tx.accountId || null,
+  account_id: isValidUUID(tx.accountId) ? tx.accountId : null,
   currency: tx.currency || "PEN",
   exchange_rate: tx.exchangeRate || 1.0,
   installments: tx.installments || null,
@@ -95,13 +96,13 @@ export const mapRecurringFromDB = (row: any): RecurringExpense => ({
 });
 
 export const mapRecurringToDB = (userId: string, rec: RecurringExpense) => ({
-  id: rec.id,
+  id: isValidUUID(rec.id) ? rec.id : generateUUID(),
   user_id: userId,
   name: rec.name,
   amount: rec.amount,
   category_id: rec.categoryId,
   payment_method: rec.paymentMethod,
-  account_id: rec.accountId || null,
+  account_id: isValidUUID(rec.accountId) ? rec.accountId : null,
   currency: rec.currency || "PEN",
   due_day: rec.dueDay,
   frequency: rec.frequency,
@@ -126,7 +127,7 @@ export const mapDebtFromDB = (row: any): DebtLoan => ({
 });
 
 export const mapDebtToDB = (userId: string, debt: DebtLoan) => ({
-  id: debt.id,
+  id: isValidUUID(debt.id) ? debt.id : generateUUID(),
   user_id: userId,
   type: debt.type,
   person_name: debt.personName,
@@ -134,7 +135,7 @@ export const mapDebtToDB = (userId: string, debt: DebtLoan) => ({
   due_date: debt.dueDate || null,
   status: debt.status,
   notes: debt.notes || null,
-  account_id: debt.accountId || null,
+  account_id: isValidUUID(debt.accountId) ? debt.accountId : null,
   currency: debt.currency || "PEN",
   interest_rate: debt.interestRate || 0,
   minimum_payment: debt.minimumPayment || 0,
@@ -155,7 +156,7 @@ export const mapGoalFromDB = (row: any): SavingsGoal => ({
 });
 
 export const mapGoalToDB = (userId: string, goal: SavingsGoal) => ({
-  id: goal.id,
+  id: isValidUUID(goal.id) ? goal.id : generateUUID(),
   user_id: userId,
   name: goal.name,
   target_amount: goal.targetAmount,
@@ -283,73 +284,137 @@ export const supabaseService = {
   // Save / Update Settings
   async saveSettings(userId: string, s: UserSettings) {
     if (!supabase) return;
-    await supabase.from("user_settings").upsert(mapSettingsToDB(userId, s));
+    const { error } = await supabase.from("user_settings").upsert(mapSettingsToDB(userId, s));
+    if (error) {
+      console.error("Error saving settings to Supabase:", error);
+      throw error;
+    }
   },
 
   // Transactions
   async insertTransaction(userId: string, tx: Transaction) {
-    if (!supabase) return;
-    await supabase.from("transactions").upsert(mapTransactionToDB(userId, tx));
+    if (!supabase) return null;
+    const payload = mapTransactionToDB(userId, tx);
+    const { data, error } = await supabase.from("transactions").upsert(payload).select();
+    if (error) {
+      console.error("Error inserting transaction to Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteTransaction(txId: string) {
     if (!supabase) return;
-    await supabase.from("transactions").delete().eq("id", txId);
+    const { error } = await supabase.from("transactions").delete().eq("id", txId);
+    if (error) {
+      console.error("Error deleting transaction from Supabase:", error);
+      throw error;
+    }
   },
 
   // Accounts
   async upsertAccount(userId: string, acc: Account) {
-    if (!supabase) return;
-    await supabase.from("accounts").upsert(mapAccountToDB(userId, acc));
+    if (!supabase) return null;
+    const payload = mapAccountToDB(userId, acc);
+    const { data, error } = await supabase.from("accounts").upsert(payload).select();
+    if (error) {
+      console.error("Error upserting account in Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteAccount(accId: string) {
     if (!supabase) return;
-    await supabase.from("accounts").delete().eq("id", accId);
+    const { error } = await supabase.from("accounts").delete().eq("id", accId);
+    if (error) {
+      console.error("Error deleting account from Supabase:", error);
+      throw error;
+    }
   },
 
   // Debts
   async upsertDebt(userId: string, debt: DebtLoan) {
-    if (!supabase) return;
-    await supabase.from("debts_loans").upsert(mapDebtToDB(userId, debt));
+    if (!supabase) return null;
+    const payload = mapDebtToDB(userId, debt);
+    const { data, error } = await supabase.from("debts_loans").upsert(payload).select();
+    if (error) {
+      console.error("Error upserting debt in Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteDebt(debtId: string) {
     if (!supabase) return;
-    await supabase.from("debts_loans").delete().eq("id", debtId);
+    const { error } = await supabase.from("debts_loans").delete().eq("id", debtId);
+    if (error) {
+      console.error("Error deleting debt from Supabase:", error);
+      throw error;
+    }
   },
 
   // Goals
   async upsertGoal(userId: string, goal: SavingsGoal) {
-    if (!supabase) return;
-    await supabase.from("savings_goals").upsert(mapGoalToDB(userId, goal));
+    if (!supabase) return null;
+    const payload = mapGoalToDB(userId, goal);
+    const { data, error } = await supabase.from("savings_goals").upsert(payload).select();
+    if (error) {
+      console.error("Error upserting goal in Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteGoal(goalId: string) {
     if (!supabase) return;
-    await supabase.from("savings_goals").delete().eq("id", goalId);
+    const { error } = await supabase.from("savings_goals").delete().eq("id", goalId);
+    if (error) {
+      console.error("Error deleting goal from Supabase:", error);
+      throw error;
+    }
   },
 
   // Recurring
   async upsertRecurring(userId: string, rec: RecurringExpense) {
-    if (!supabase) return;
-    await supabase.from("recurring_expenses").upsert(mapRecurringToDB(userId, rec));
+    if (!supabase) return null;
+    const payload = mapRecurringToDB(userId, rec);
+    const { data, error } = await supabase.from("recurring_expenses").upsert(payload).select();
+    if (error) {
+      console.error("Error upserting recurring in Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteRecurring(recId: string) {
     if (!supabase) return;
-    await supabase.from("recurring_expenses").delete().eq("id", recId);
+    const { error } = await supabase.from("recurring_expenses").delete().eq("id", recId);
+    if (error) {
+      console.error("Error deleting recurring expense from Supabase:", error);
+      throw error;
+    }
   },
 
   // Challenges
   async upsertChallenge(userId: string, chal: SavingsChallenge) {
-    if (!supabase) return;
-    await supabase.from("savings_challenges").upsert(mapChallengeToDB(userId, chal));
+    if (!supabase) return null;
+    const payload = mapChallengeToDB(userId, chal);
+    const { data, error } = await supabase.from("savings_challenges").upsert(payload).select();
+    if (error) {
+      console.error("Error upserting challenge in Supabase:", error);
+      throw error;
+    }
+    return data;
   },
 
   async deleteChallenge(chalId: string) {
     if (!supabase) return;
-    await supabase.from("savings_challenges").delete().eq("id", chalId);
+    const { error } = await supabase.from("savings_challenges").delete().eq("id", chalId);
+    if (error) {
+      console.error("Error deleting challenge from Supabase:", error);
+      throw error;
+    }
   },
 
   // Migrate entire local data to Supabase in batch

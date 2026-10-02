@@ -4,6 +4,13 @@ import { useFinance } from "../../context/FinanceContext";
 import { PwaInstallPrompt } from "../pwa/PwaInstallPrompt";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Menu,
   Plus,
   Sun,
@@ -14,6 +21,8 @@ import {
   FileText,
   Cloud,
   LogIn,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -23,6 +32,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const {
     activeTab,
+    setActiveTab,
     setIsAddModalOpen,
     setIsReportModalOpen,
     setEditingTransaction,
@@ -34,8 +44,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     goToPreviousMonth,
     goToNextMonth,
     user,
+    signOut,
     setIsAuthModalOpen,
     isCloudSyncing,
+    syncLocalDataToCloud,
   } = useFinance();
 
   const getTabTitle = () => {
@@ -203,20 +215,67 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <PwaInstallPrompt />
         </div>
 
-        {/* Supabase Cloud Auth Button */}
+        {/* Supabase Cloud Auth Button / Connected User Dropdown */}
         {user ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAuthModalOpen(true)}
-            title={`Conectado a la nube: ${user.email}`}
-            className="cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-medium text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-          >
-            <Cloud className="size-3.5 shrink-0" />
-            <span className="hidden sm:inline truncate max-w-[100px]">
-              {user.user_metadata?.full_name || user.email?.split("@")[0]}
-            </span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  title={`Conectado a la nube: ${user.email}`}
+                  className="cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-medium text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                />
+              }
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <Cloud className="size-3.5 shrink-0" />
+              <span className="hidden sm:inline truncate max-w-[110px]">
+                {user.user_metadata?.full_name || user.email?.split("@")[0]}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 p-1.5">
+              <div className="px-2.5 py-2 border-b border-border/60 mb-1">
+                <p className="text-xs font-bold text-foreground truncate">
+                  {user.user_metadata?.full_name || "Usuario"}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {user.email}
+                </p>
+                <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Supabase Cloud Activo</span>
+                </div>
+              </div>
+
+              <DropdownMenuItem
+                onClick={() => syncLocalDataToCloud()}
+                className="cursor-pointer text-xs gap-2 py-2"
+              >
+                <RefreshCw className={`size-3.5 ${isCloudSyncing ? "animate-spin text-emerald-400" : "text-primary"}`} />
+                <span>{isCloudSyncing ? "Sincronizando..." : "Sincronizar Datos"}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => setActiveTab("settings")}
+                className="cursor-pointer text-xs gap-2 py-2"
+              >
+                <FileText className="size-3.5 text-muted-foreground" />
+                <span>Ajustes & Cuenta</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={signOut}
+                className="cursor-pointer text-xs gap-2 py-2 font-semibold text-rose-500 hover:text-rose-400"
+              >
+                <LogOut className="size-3.5" />
+                <span>Cerrar Sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
           <Button
             variant="outline"

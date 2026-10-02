@@ -7,8 +7,78 @@ import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+// Global modal scroll lock counter & original style cache
+let activeModalsCount = 0;
+let originalHtmlOverflow = "";
+let originalBodyOverflow = "";
+let originalHtmlOverscroll = "";
+let originalBodyOverscroll = "";
+
+function lockBackgroundScroll() {
+  if (typeof document === "undefined") return;
+  if (activeModalsCount === 0) {
+    originalHtmlOverflow = document.documentElement.style.overflow;
+    originalBodyOverflow = document.body.style.overflow;
+    originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+    originalBodyOverscroll = document.body.style.overscrollBehavior;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+    document.body.style.overscrollBehavior = "none";
+  }
+  activeModalsCount++;
+}
+
+function unlockBackgroundScroll() {
+  if (typeof document === "undefined") return;
+  activeModalsCount = Math.max(0, activeModalsCount - 1);
+  if (activeModalsCount === 0) {
+    document.documentElement.style.overflow = originalHtmlOverflow;
+    document.body.style.overflow = originalBodyOverflow;
+    document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
+    document.body.style.overscrollBehavior = originalBodyOverscroll;
+  }
+}
+
+function Dialog({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: DialogPrimitive.Root.Props) {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen || false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+
+  React.useEffect(() => {
+    if (isOpen) {
+      lockBackgroundScroll();
+      return () => {
+        unlockBackgroundScroll();
+      };
+    }
+  }, [isOpen]);
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean, details: any) => {
+      if (!isControlled) {
+        setInternalOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen, details);
+    },
+    [isControlled, onOpenChange]
+  );
+
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      open={open}
+      defaultOpen={defaultOpen}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  );
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -31,9 +101,11 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/60 backdrop-blur-xs duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 touch-none overscroll-none select-none",
         className
       )}
+      onWheel={(e) => e.preventDefault()}
+      onTouchMove={(e) => e.preventDefault()}
       {...props}
     />
   )
@@ -58,7 +130,7 @@ function DialogContent({
           typeof className === "function"
             ? className
             : cn(
-                "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none overscroll-contain data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
                 !isCustomMaxW && "max-w-lg",
                 className
               )
@@ -72,13 +144,12 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-2 right-2 cursor-pointer"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

@@ -142,8 +142,8 @@ export const SavingsGoalModal: React.FC<SavingsGoalModalProps> = ({
               </Label>
               <Input
                 type="number"
-                step="10"
-                min="1"
+                step="any"
+                min="0"
                 placeholder="3000"
                 {...register("targetAmount", { required: true })}
                 className="h-9 text-xs"
@@ -158,7 +158,8 @@ export const SavingsGoalModal: React.FC<SavingsGoalModalProps> = ({
                 </Label>
                 <Input
                   type="number"
-                  step="10"
+                  step="any"
+                  min="0"
                   placeholder="0"
                   {...register("initialAmount")}
                   className="h-9 text-xs"

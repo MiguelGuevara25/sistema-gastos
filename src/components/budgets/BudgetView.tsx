@@ -52,7 +52,7 @@ export const BudgetView: React.FC = () => {
 
   const onSaveBudget = (data: BudgetFormData) => {
     const val = parseFloat(String(data.newBudget));
-    if (!isNaN(val) && val > 0) {
+    if (!isNaN(val) && val >= 0) {
       updateSettings({ monthlyBudget: val });
     }
     setIsEditingBudget(false);
@@ -123,8 +123,8 @@ export const BudgetView: React.FC = () => {
                   </span>
                   <Input
                     type="number"
-                    step="50"
-                    min="1"
+                    step="any"
+                    min="0"
                     {...register("newBudget", { required: true })}
                     autoFocus
                     className="w-32 pl-8 h-8 text-sm"

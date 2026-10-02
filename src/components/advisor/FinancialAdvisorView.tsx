@@ -426,7 +426,8 @@ export const FinancialAdvisorView: React.FC = () => {
                   </Label>
                   <Input
                     type="number"
-                    step="100"
+                    step="any"
+                    min="0"
                     value={initialCapital}
                     onChange={(e) => setInitialCapital(e.target.value)}
                     className="h-9 text-xs"
@@ -439,7 +440,8 @@ export const FinancialAdvisorView: React.FC = () => {
                   </Label>
                   <Input
                     type="number"
-                    step="50"
+                    step="any"
+                    min="0"
                     value={monthlyContribution}
                     onChange={(e) => setMonthlyContribution(e.target.value)}
                     className="h-9 text-xs"
@@ -453,9 +455,9 @@ export const FinancialAdvisorView: React.FC = () => {
                   </Label>
                   <Input
                     type="number"
-                    step="0.5"
-                    min="1"
-                    max="50"
+                    step="any"
+                    min="0"
+                    max="100"
                     value={annualRate}
                     onChange={(e) => setAnnualRate(e.target.value)}
                     className="h-9 text-xs"

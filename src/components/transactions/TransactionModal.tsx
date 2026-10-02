@@ -165,7 +165,8 @@ export const TransactionModal: React.FC = () => {
   };
 
   const onSubmit = (data: TransactionFormData) => {
-    const numAmount = parseFloat(String(data.amount));
+    const cleanAmountStr = String(data.amount).replace(",", ".");
+    const numAmount = parseFloat(cleanAmountStr);
     if (isNaN(numAmount) || numAmount <= 0) return;
 
     const parsedTags = data.tagsString
@@ -187,13 +188,19 @@ export const TransactionModal: React.FC = () => {
           }
         : undefined;
 
+    const finalCategoryId =
+      data.categoryId ||
+      defaultExpCat?.id ||
+      filteredCategories[0]?.id ||
+      "cat-otros-gastos";
+
     if (editingTransaction) {
       updateTransaction(editingTransaction.id, {
         type: data.type,
         amount: numAmount,
         currency: data.currency || settings.currencyCode,
         description: data.description.trim(),
-        categoryId: data.categoryId,
+        categoryId: finalCategoryId,
         date: data.date,
         paymentMethod: data.paymentMethod,
         accountId: data.accountId || undefined,
@@ -207,7 +214,7 @@ export const TransactionModal: React.FC = () => {
         amount: numAmount,
         currency: data.currency || settings.currencyCode,
         description: data.description.trim(),
-        categoryId: data.categoryId,
+        categoryId: finalCategoryId,
         date: data.date,
         paymentMethod: data.paymentMethod,
         accountId: data.accountId || undefined,
@@ -390,6 +397,11 @@ export const TransactionModal: React.FC = () => {
                 );
               })}
             </div>
+            {errors.categoryId && (
+              <p className="text-xs text-destructive">
+                {errors.categoryId.message}
+              </p>
+            )}
           </div>
 
           {/* Date, Payment Method & Account */}
