@@ -1,0 +1,232 @@
+import {
+  Transaction,
+  Account,
+  SavingsGoal,
+  RecurringExpense,
+  DebtLoan,
+  SavingsChallenge,
+  UserSettings,
+} from "../types/finance";
+import { format, subDays } from "date-fns";
+
+const getDateAgo = (daysAgo: number): string => {
+  return format(subDays(new Date(), daysAgo), "yyyy-MM-dd");
+};
+
+export const DEMO_SETTINGS: UserSettings = {
+  currency: "S/.",
+  currencyCode: "PEN",
+  monthlyBudget: 2800,
+  theme: "dark",
+  userName: "Usuario Demo",
+  exchangeRates: {
+    PEN: 1.0,
+    USD: 3.75,
+    EUR: 4.05,
+  },
+  phantomExpenseThreshold: 20,
+};
+
+export const DEMO_ACCOUNTS: Account[] = [
+  {
+    id: "demo-acc-yape",
+    name: "Yape",
+    type: "wallet",
+    balance: 145.5,
+    currency: "PEN",
+    color: "#8b5cf6",
+    icon: "Smartphone",
+  },
+  {
+    id: "demo-acc-bcp",
+    name: "BCP Cuenta Sueldo",
+    type: "bank",
+    balance: 2450.0,
+    currency: "PEN",
+    color: "#3b82f6",
+    icon: "Landmark",
+  },
+  {
+    id: "demo-acc-efectivo",
+    name: "Efectivo",
+    type: "cash",
+    balance: 180.0,
+    currency: "PEN",
+    color: "#10b981",
+    icon: "Coins",
+  },
+  {
+    id: "demo-acc-tarjeta",
+    name: "Tarjeta Crédito Visa",
+    type: "credit",
+    balance: -420.0,
+    currency: "PEN",
+    color: "#f59e0b",
+    icon: "CreditCard",
+    creditLimit: 3500,
+    closingDay: 20,
+    dueDay: 15,
+  },
+];
+
+export const DEMO_TRANSACTIONS: Transaction[] = [
+  {
+    id: "demo-tx-1",
+    description: "Sueldo Mensual Principal",
+    amount: 3200,
+    type: "income",
+    categoryId: "cat-salario",
+    date: getDateAgo(3),
+    paymentMethod: "transferencia",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-tx-2",
+    description: "Alquiler Departamento",
+    amount: 850,
+    type: "expense",
+    categoryId: "cat-vivienda",
+    date: getDateAgo(2),
+    paymentMethod: "transferencia",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-tx-3",
+    description: "Supermercado Semanal (Wong)",
+    amount: 240,
+    type: "expense",
+    categoryId: "cat-alimentacion",
+    date: getDateAgo(2),
+    paymentMethod: "tarjeta_debito",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-tx-4",
+    description: "Internet Fibra Óptica",
+    amount: 110,
+    type: "expense",
+    categoryId: "cat-servicios",
+    date: getDateAgo(1),
+    paymentMethod: "tarjeta_debito",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-tx-5",
+    description: "Café Starbucks",
+    amount: 16.5,
+    type: "expense",
+    categoryId: "cat-alimentacion",
+    date: getDateAgo(0),
+    paymentMethod: "efectivo",
+    accountId: "demo-acc-efectivo",
+    currency: "PEN",
+    tags: ["gasto-hormiga"],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-tx-6",
+    description: "Taxi tramo corto Yape",
+    amount: 12.0,
+    type: "expense",
+    categoryId: "cat-transporte",
+    date: getDateAgo(0),
+    paymentMethod: "transferencia",
+    accountId: "demo-acc-yape",
+    currency: "PEN",
+    tags: ["gasto-hormiga"],
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEMO_GOALS: SavingsGoal[] = [
+  {
+    id: "demo-goal-1",
+    name: "Fondo de Emergencia",
+    targetAmount: 3500,
+    currentAmount: 1800,
+    currency: "PEN",
+    color: "#10b981",
+    icon: "ShieldCheck",
+    targetDate: "2026-12-31",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-goal-2",
+    name: "Viaje Fin de Año",
+    targetAmount: 1500,
+    currentAmount: 750,
+    currency: "PEN",
+    color: "#8b5cf6",
+    icon: "Plane",
+    targetDate: "2026-11-30",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEMO_CHALLENGES: SavingsChallenge[] = [
+  {
+    id: "demo-chal-52",
+    title: "Reto de las 52 Semanas",
+    description: "Ahorra semana a semana para forjar un hábito sólido.",
+    type: "52_weeks",
+    targetAmount: 1378,
+    currentAmount: 210,
+    startDate: getDateAgo(20),
+    durationUnits: 52,
+    unitType: "weeks",
+    completedSteps: [1, 2, 3, 4, 5, 6],
+    status: "active",
+    badgeIcon: "Trophy",
+    rewardBadge: "Ahorrador de Bronce",
+    currency: "PEN",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEMO_RECURRING: RecurringExpense[] = [
+  {
+    id: "demo-rec-1",
+    name: "Alquiler",
+    amount: 850,
+    categoryId: "cat-vivienda",
+    paymentMethod: "transferencia",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    dueDay: 1,
+    frequency: "monthly",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-rec-2",
+    name: "Internet Fibra",
+    amount: 110,
+    categoryId: "cat-servicios",
+    paymentMethod: "tarjeta_debito",
+    accountId: "demo-acc-bcp",
+    currency: "PEN",
+    dueDay: 10,
+    frequency: "monthly",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const DEMO_DEBTS: DebtLoan[] = [
+  {
+    id: "demo-debt-1",
+    type: "lent",
+    personName: "Carlos Gómez",
+    amount: 150,
+    currency: "PEN",
+    status: "pending",
+    notes: "Préstamo personal",
+    createdAt: getDateAgo(5),
+  },
+];

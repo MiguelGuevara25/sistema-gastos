@@ -46,7 +46,7 @@ export const RecurringExpensesView: React.FC = () => {
   );
 
   const currentMonthKey = useMemo(() => {
-    return format(new Date(), 'yyyy-MM');
+    return format(new Date(), "yyyy-MM");
   }, []);
 
   const activeMonthKey =
@@ -241,29 +241,49 @@ export const RecurringExpensesView: React.FC = () => {
       </div>
 
       {/* List of Recurring Expenses */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredList.map((exp) => {
-          const isPaid = isExpensePaidThisMonth(exp);
-          const category = categories.find((c) => c.id === exp.categoryId) || {
-            name: "General",
-            icon: "Receipt",
-            color: "#94a3b8",
-          };
-          const account = accounts.find((a) => a.id === exp.accountId);
+      {filteredList.length === 0 ? (
+        <Card className="p-8 sm:p-12 text-center border-dashed border-border/80">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-3">
+            <Receipt className="size-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">No hay gastos fijos registrados</h3>
+          <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto">
+            Registra tus servicios mensuales recurrentes como alquiler, luz, internet o suscripciones para monitorear sus vencimientos.
+          </p>
+          <Button
+            size="sm"
+            onClick={handleOpenAddModal}
+            className="mt-4 gap-1.5 text-xs font-semibold cursor-pointer shadow-xs"
+          >
+            <Plus className="size-3.5" />
+            Crear mi primer gasto fijo
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredList.map((exp) => {
+            const isPaid = isExpensePaidThisMonth(exp);
+            const category = categories.find((c) => c.id === exp.categoryId) || {
+              name: "General",
+              icon: "Receipt",
+              color: "#94a3b8",
+            };
+            const account = accounts.find((a) => a.id === exp.accountId);
 
-          return (
-            <RecurringExpensesCard
-              key={exp.id}
-              isPaid={isPaid}
-              exp={exp}
-              category={category}
-              account={account}
-              handleOpenPayModal={handleOpenPayModal}
-              handleOpenEditModal={handleOpenEditModal}
-            />
-          );
-        })}
-      </div>
+            return (
+              <RecurringExpensesCard
+                key={exp.id}
+                isPaid={isPaid}
+                exp={exp}
+                category={category}
+                account={account}
+                handleOpenPayModal={handleOpenPayModal}
+                handleOpenEditModal={handleOpenEditModal}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Add / Edit Recurring Expense Modal */}
       <RecurringExpenseModal

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useFinance } from '../../context/FinanceContext';
-import { SavingsGoal } from '../../types/finance';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useState } from "react";
+import { useFinance } from "../../context/FinanceContext";
+import { SavingsGoal } from "../../types/finance";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Target,
   Plus,
@@ -16,10 +16,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CheckCircle2,
-} from 'lucide-react';
-import { SavingsGoalModal } from './SavingsGoalModal';
-import { GoalActionModal } from './GoalActionModal';
-import { differenceInCalendarDays, parseISO, startOfToday } from 'date-fns';
+} from "lucide-react";
+import { SavingsGoalModal } from "./SavingsGoalModal";
+import { GoalActionModal } from "./GoalActionModal";
+import { differenceInCalendarDays, parseISO, startOfToday } from "date-fns";
 
 export const GoalsView: React.FC = () => {
   const {
@@ -37,11 +37,13 @@ export const GoalsView: React.FC = () => {
   // Contribution / Withdrawal modal
   const [actionModal, setActionModal] = useState<{
     goal: SavingsGoal;
-    type: 'deposit' | 'withdraw';
+    type: "deposit" | "withdraw";
   } | null>(null);
 
   const overallProgress =
-    totalTargetGoals > 0 ? Math.min(100, Math.round((totalSavedInGoals / totalTargetGoals) * 100)) : 0;
+    totalTargetGoals > 0
+      ? Math.min(100, Math.round((totalSavedInGoals / totalTargetGoals) * 100))
+      : 0;
 
   const handleOpenAddGoal = () => {
     setEditingGoal(null);
@@ -53,17 +55,25 @@ export const GoalsView: React.FC = () => {
     setIsAddGoalOpen(true);
   };
 
-  const handleOpenActionModal = (goal: SavingsGoal, type: 'deposit' | 'withdraw') => {
+  const handleOpenActionModal = (
+    goal: SavingsGoal,
+    type: "deposit" | "withdraw",
+  ) => {
     setActionModal({ goal, type });
   };
 
   // Helper to calculate days or monthly recommended deposit
   const getGoalTimeAdvice = (goal: SavingsGoal) => {
     if (!goal.targetDate) return null;
-    const target = parseISO(goal.targetDate.includes('T') ? goal.targetDate : goal.targetDate + 'T00:00:00');
+    const target = parseISO(
+      goal.targetDate.includes("T")
+        ? goal.targetDate
+        : goal.targetDate + "T00:00:00",
+    );
     const diffDays = differenceInCalendarDays(target, startOfToday());
 
-    if (diffDays <= 0) return { label: 'Fecha cumplida', color: 'text-amber-400' };
+    if (diffDays <= 0)
+      return { label: "Fecha cumplida", color: "text-amber-400" };
 
     const diffMonths = Math.max(1, Math.round(diffDays / 30));
     const remainingMoney = Math.max(0, goal.targetAmount - goal.currentAmount);
@@ -87,7 +97,9 @@ export const GoalsView: React.FC = () => {
               <span className="p-1.5 rounded-lg bg-primary/20 text-primary">
                 <Target className="size-4" />
               </span>
-              <h3 className="text-base font-bold text-foreground">Progreso Global de Ahorro</h3>
+              <h3 className="text-base font-bold text-foreground">
+                Progreso Global de Ahorro
+              </h3>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Acumulado en todos tus fondos y proyectos personales
@@ -107,7 +119,9 @@ export const GoalsView: React.FC = () => {
         <div className="mt-5 space-y-3">
           <div className="flex items-end justify-between">
             <div>
-              <span className="text-xs text-muted-foreground font-medium">Total Ahorrado</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Total Ahorrado
+              </span>
               <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
                 {formatCurrency(totalSavedInGoals)}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -128,11 +142,33 @@ export const GoalsView: React.FC = () => {
       </Card>
 
       {/* Goals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {goals.map((goal) => {
+      {goals.length === 0 ? (
+        <Card className="p-8 sm:p-12 text-center border-dashed border-border/80">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-3">
+            <Target className="size-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">No tienes metas de ahorro</h3>
+          <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto">
+            Crea metas financieras como fondo de emergencia, vacaciones, estudios o compras importantes para medir tu progreso.
+          </p>
+          <Button
+            size="sm"
+            onClick={handleOpenAddGoal}
+            className="mt-4 gap-1.5 text-xs font-semibold cursor-pointer shadow-xs"
+          >
+            <Plus className="size-3.5" />
+            Crear mi primera meta
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {goals.map((goal) => {
           const progress =
             goal.targetAmount > 0
-              ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
+              ? Math.min(
+                  100,
+                  Math.round((goal.currentAmount / goal.targetAmount) * 100),
+                )
               : 0;
           const isCompleted = goal.currentAmount >= goal.targetAmount;
           const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
@@ -143,7 +179,10 @@ export const GoalsView: React.FC = () => {
               key={goal.id}
               className="relative overflow-hidden border-border/70 hover:border-border transition-all flex flex-col justify-between"
             >
-              <div className="h-1.5 w-full" style={{ backgroundColor: goal.color }} />
+              <div
+                className="h-1.5 w-full"
+                style={{ backgroundColor: goal.color }}
+              />
 
               <CardContent className="p-4 space-y-4 flex-1 flex flex-col justify-between">
                 <div>
@@ -165,7 +204,10 @@ export const GoalsView: React.FC = () => {
                           {goal.name}
                         </h4>
                         {goal.category && (
-                          <Badge variant="outline" className="text-[10px] mt-0.5 px-1.5 py-0">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] mt-0.5 px-1.5 py-0"
+                          >
                             {goal.category}
                           </Badge>
                         )}
@@ -238,7 +280,7 @@ export const GoalsView: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleOpenActionModal(goal, 'deposit')}
+                    onClick={() => handleOpenActionModal(goal, "deposit")}
                     className="flex-1 h-8 text-xs cursor-pointer gap-1 font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                   >
                     <ArrowDownRight className="size-3.5" />
@@ -248,7 +290,7 @@ export const GoalsView: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleOpenActionModal(goal, 'withdraw')}
+                    onClick={() => handleOpenActionModal(goal, "withdraw")}
                     className="flex-1 h-8 text-xs cursor-pointer gap-1 text-muted-foreground hover:text-foreground"
                   >
                     <ArrowUpRight className="size-3.5" />
@@ -260,6 +302,7 @@ export const GoalsView: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Add / Edit Goal Modal */}
       {/* Add / Edit Goal Modal */}

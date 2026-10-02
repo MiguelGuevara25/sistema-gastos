@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
-import { useFinance } from '../../context/FinanceContext';
-import { CategoryIcon } from '../ui/CategoryIcon';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Clock, Plus, Trash2, Edit2 } from 'lucide-react';
-import { PAYMENT_METHOD_LABELS } from '../../data/categories';
+import { useFinance } from "../../context/FinanceContext";
+import { CategoryIcon } from "../ui/CategoryIcon";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Clock, Plus, Trash2, Edit2 } from "lucide-react";
+import { PAYMENT_METHOD_LABELS } from "../../data/categories";
 
-import { isToday, isYesterday, format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { isToday, isYesterday, format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 export const RecentTransactions: React.FC = () => {
   const {
@@ -25,20 +31,22 @@ export const RecentTransactions: React.FC = () => {
   const recent = transactions.slice(0, 5);
 
   const getCategory = (catId: string) => {
-    return categories.find((c) => c.id === catId) || {
-      id: catId,
-      name: 'General',
-      icon: 'HelpCircle',
-      color: '#94a3b8',
-      type: 'expense' as const,
-    };
+    return (
+      categories.find((c) => c.id === catId) || {
+        id: catId,
+        name: "General",
+        icon: "HelpCircle",
+        color: "#94a3b8",
+        type: "expense" as const,
+      }
+    );
   };
 
   const formatDateLabel = (dateStr: string) => {
     try {
-      const date = parseISO(dateStr + 'T00:00:00');
-      if (isToday(date)) return 'Hoy';
-      if (isYesterday(date)) return 'Ayer';
+      const date = parseISO(dateStr + "T00:00:00");
+      if (isToday(date)) return "Hoy";
+      if (isYesterday(date)) return "Ayer";
       return format(date, "d 'de' MMM", { locale: es });
     } catch {
       return dateStr;
@@ -60,7 +68,7 @@ export const RecentTransactions: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => setActiveTab("transactions")}
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium cursor-pointer h-7 px-2"
         >
           Ver historial
@@ -71,7 +79,9 @@ export const RecentTransactions: React.FC = () => {
       <CardContent className="pt-2">
         {recent.length === 0 ? (
           <div className="py-10 text-center flex flex-col items-center justify-center">
-            <p className="text-xs text-muted-foreground mb-3">No tienes transacciones registradas</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              No tienes transacciones registradas
+            </p>
             <Button
               size="sm"
               variant="secondary"
@@ -88,7 +98,7 @@ export const RecentTransactions: React.FC = () => {
           <div className="divide-y divide-border">
             {recent.map((tx) => {
               const cat = getCategory(tx.categoryId);
-              const isExpense = tx.type === 'expense';
+              const isExpense = tx.type === "expense";
 
               return (
                 <div
@@ -100,18 +110,28 @@ export const RecentTransactions: React.FC = () => {
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-border"
                       style={{ backgroundColor: `${cat.color}15` }}
                     >
-                      <CategoryIcon name={cat.icon} color={cat.color} size={16} />
+                      <CategoryIcon
+                        name={cat.icon}
+                        color={cat.color}
+                        size={16}
+                      />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">
                         {tx.description}
                       </p>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                        <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0 h-4">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-normal px-1.5 py-0 h-4"
+                        >
                           {cat.name}
                         </Badge>
                         <span>•</span>
-                        <span>{PAYMENT_METHOD_LABELS[tx.paymentMethod] || tx.paymentMethod}</span>
+                        <span>
+                          {PAYMENT_METHOD_LABELS[tx.paymentMethod] ||
+                            tx.paymentMethod}
+                        </span>
                         <span>•</span>
                         <span>{formatDateLabel(tx.date)}</span>
                       </div>
@@ -122,10 +142,10 @@ export const RecentTransactions: React.FC = () => {
                     <div className="text-right">
                       <div
                         className={`text-xs font-bold ${
-                          isExpense ? 'text-foreground' : 'text-emerald-400'
+                          isExpense ? "text-foreground" : "text-emerald-400"
                         }`}
                       >
-                        {isExpense ? '-' : '+'}
+                        {isExpense ? "-" : "+"}
                         {formatCurrency(tx.amount)}
                       </div>
                     </div>

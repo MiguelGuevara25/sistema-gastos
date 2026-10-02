@@ -29,12 +29,9 @@ interface PayFormData {
   payAccountId: string;
 }
 
-export const PayRecurringExpenseModal: React.FC<PayRecurringExpenseModalProps> = ({
-  isOpen,
-  onClose,
-  expense,
-  activeMonthKey,
-}) => {
+export const PayRecurringExpenseModal: React.FC<
+  PayRecurringExpenseModalProps
+> = ({ isOpen, onClose, expense, activeMonthKey }) => {
   const { payRecurringExpense, accounts, formatCurrency } = useFinance();
 
   const defaultValues: PayFormData = useMemo(() => {
@@ -81,7 +78,8 @@ export const PayRecurringExpenseModal: React.FC<PayRecurringExpenseModalProps> =
           </DialogTitle>
           <DialogDescription className="text-xs">
             Se creará un movimiento de{" "}
-            {expense ? formatCurrency(expense.amount) : ""} en tu historial del mes
+            {expense ? formatCurrency(expense.amount) : ""} en tu historial del
+            mes
           </DialogDescription>
         </DialogHeader>
 

@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { HandCoins, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { HandCoins, ArrowUpRight, ArrowDownLeft, Percent, Calculator } from "lucide-react";
 
 interface DebtLoanModalProps {
   isOpen: boolean;
@@ -30,6 +30,8 @@ interface DebtLoanFormData {
   dueDate: string;
   accountId: string;
   notes: string;
+  interestRate?: number | string;
+  minimumPayment?: number | string;
 }
 
 export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
@@ -37,7 +39,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
   onClose,
   debtToEdit,
 }) => {
-  const { addDebtLoan, updateDebtLoan, accounts, formatCurrency } = useFinance();
+  const { addDebtLoan, updateDebtLoan, accounts, formatCurrency } =
+    useFinance();
 
   const defaultValues: DebtLoanFormData = useMemo(
     () => ({
@@ -47,6 +50,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
       dueDate: "",
       accountId: "",
       notes: "",
+      interestRate: "0",
+      minimumPayment: "",
     }),
     [],
   );
@@ -61,6 +66,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
             dueDate: debtToEdit.dueDate || "",
             accountId: debtToEdit.accountId || "",
             notes: debtToEdit.notes || "",
+            interestRate: debtToEdit.interestRate !== undefined ? debtToEdit.interestRate.toString() : "0",
+            minimumPayment: debtToEdit.minimumPayment !== undefined ? debtToEdit.minimumPayment.toString() : "",
           }
         : defaultValues,
     });
@@ -76,6 +83,16 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
     const numAmount = parseFloat(String(data.amount));
     if (!data.personName.trim() || isNaN(numAmount) || numAmount <= 0) return;
 
+    const interestRateVal =
+      data.type === "borrowed" && data.interestRate !== undefined && data.interestRate !== ""
+        ? parseFloat(String(data.interestRate))
+        : 0;
+
+    const minPayVal =
+      data.type === "borrowed" && data.minimumPayment !== undefined && data.minimumPayment !== ""
+        ? parseFloat(String(data.minimumPayment))
+        : undefined;
+
     if (debtToEdit) {
       updateDebtLoan(debtToEdit.id, {
         type: data.type,
@@ -84,6 +101,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
         dueDate: data.dueDate || undefined,
         accountId: data.accountId || undefined,
         notes: data.notes?.trim() || undefined,
+        interestRate: !isNaN(interestRateVal) ? interestRateVal : 0,
+        minimumPayment: minPayVal && !isNaN(minPayVal) ? minPayVal : undefined,
       });
     } else {
       addDebtLoan({
@@ -94,6 +113,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
         status: "pending",
         accountId: data.accountId || undefined,
         notes: data.notes?.trim() || undefined,
+        interestRate: !isNaN(interestRateVal) ? interestRateVal : 0,
+        minimumPayment: minPayVal && !isNaN(minPayVal) ? minPayVal : undefined,
       });
     }
 
@@ -102,7 +123,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HandCoins className="size-5 text-primary" />
@@ -155,12 +176,12 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
           {/* Persona */}
           <div className="space-y-1.5">
             <Label htmlFor="personName" className="text-xs font-semibold">
-              Nombre de la Persona
+              Nombre de la Persona / Entidad
             </Label>
             <Input
               id="personName"
               {...register("personName", { required: true })}
-              placeholder="Ej. Carlos Gómez, Mamá, Juan Pérez..."
+              placeholder="Ej. Carlos Gómez, BCP Préstamo, Juan Pérez..."
               required
               className="text-sm"
             />
@@ -197,6 +218,46 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
             </div>
           </div>
 
+          {/* Campos exclusivos para Deudas por Pagar (Simulador Bola de Nieve & Avalancha) */}
+          {currentType === "borrowed" && (
+            <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-3">
+              <p className="text-[11px] font-semibold text-amber-400 flex items-center gap-1.5">
+                <Calculator className="size-3.5" />
+                Datos para Simulador de Deudas (Opcional)
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="interestRate" className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <Percent className="size-3" /> Tasa Anual (APR %)
+                  </Label>
+                  <Input
+                    id="interestRate"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    placeholder="Ej. 24.5"
+                    {...register("interestRate")}
+                    className="text-xs h-8 bg-background"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="minimumPayment" className="text-[11px] font-medium text-muted-foreground">
+                    Pago Mínimo Mensual
+                  </Label>
+                  <Input
+                    id="minimumPayment"
+                    type="number"
+                    step="1"
+                    min="0"
+                    placeholder="Ej. 100"
+                    {...register("minimumPayment")}
+                    className="text-xs h-8 bg-background"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cuenta Asociada (Opcional) */}
           <div className="space-y-1.5">
             <Label htmlFor="accountId" className="text-xs font-semibold">
@@ -216,7 +277,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
             </select>
           </div>
 
-          {/* Notas / Motivo */}
+          {/* Motivo / Notas */}
           <div className="space-y-1.5">
             <Label htmlFor="notes" className="text-xs font-semibold">
               Motivo / Notas
@@ -224,7 +285,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
             <Input
               id="notes"
               {...register("notes")}
-              placeholder="Ej. Para repuesto del auto, cena compartida..."
+              placeholder="Ej. Para repuesto de moto, cena compartida..."
               className="text-sm"
             />
           </div>

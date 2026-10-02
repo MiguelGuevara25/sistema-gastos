@@ -1,22 +1,28 @@
-export type TransactionType = 'expense' | 'income';
+export type TransactionType = "expense" | "income";
 
-export type PaymentMethod = 
-  | 'efectivo'
-  | 'tarjeta_debito'
-  | 'tarjeta_credito'
-  | 'transferencia'
-  | 'otro';
+export type PaymentMethod =
+  | "efectivo"
+  | "tarjeta_debito"
+  | "tarjeta_credito"
+  | "transferencia"
+  | "otro";
 
-export type AccountType = 'bank' | 'wallet' | 'cash' | 'credit' | 'savings';
+export type AccountType = "bank" | "wallet" | "cash" | "credit" | "savings";
 
 export interface Account {
   id: string;
-  name: string; // ej: 'Yape', 'Plin', 'BCP Débito', 'Interbank', 'Efectivo', 'Tarjeta Crédito'
+  name: string; // ej: 'Yape', 'Plin', 'BCP Débito', 'Interbank Dólares', 'Efectivo', 'Tarjeta Crédito'
   type: AccountType;
   balance: number;
   color: string;
   icon?: string;
   accountNumber?: string;
+  currency?: string; // "PEN" | "USD" | "EUR"
+  // Credit Card features
+  creditLimit?: number; // Límite de crédito disponible
+  closingDay?: number; // Día de corte de facturación (1 - 31)
+  dueDay?: number; // Día límite de pago (1 - 31)
+  apr?: number; // Tasa de Interés Efectiva Anual (TEA / APR %)
 }
 
 export interface Transfer {
@@ -39,6 +45,25 @@ export interface SavingsGoal {
   category?: string;
   icon?: string;
   createdAt: string;
+  currency?: string;
+}
+
+export interface SavingsChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: "52_weeks" | "30_days_no_spend" | "target_sprint" | "custom";
+  targetAmount: number;
+  currentAmount: number;
+  startDate: string;
+  durationUnits: number; // 52 semanas o 30 días
+  unitType: "weeks" | "days";
+  completedSteps: number[]; // Lista de índices completados (ej. [1, 2, 3...])
+  status: "active" | "completed" | "paused";
+  badgeIcon: string;
+  rewardBadge: string;
+  currency?: string;
+  createdAt: string;
 }
 
 export interface Category {
@@ -47,6 +72,14 @@ export interface Category {
   icon: string;
   color: string;
   type: TransactionType;
+}
+
+export interface InstallmentDetails {
+  current: number; // Cuota actual (ej. 1)
+  total: number; // Total de cuotas (ej. 6)
+  originalAmount: number; // Monto total financiado
+  monthlyAmount: number; // Monto de cada cuota
+  parentId?: string; // ID de la transacción origen o agrupación
 }
 
 export interface Transaction {
@@ -58,6 +91,10 @@ export interface Transaction {
   date: string; // YYYY-MM-DD
   paymentMethod: PaymentMethod;
   accountId?: string; // Billetera o cuenta asociada
+  currency?: string; // "PEN" | "USD" | "EUR"
+  exchangeRate?: number; // Tipo de cambio respecto a divisa base
+  installments?: InstallmentDetails; // Detalles de compra en cuotas
+  tags?: string[]; // Etiquetas tipo #vacaciones, #trabajo
   notes?: string;
   createdAt: string;
 }
@@ -69,8 +106,9 @@ export interface RecurringExpense {
   categoryId: string;
   paymentMethod: PaymentMethod;
   accountId?: string;
+  currency?: string;
   dueDay: number; // Día del mes (1 - 31)
-  frequency: 'monthly' | 'yearly';
+  frequency: "monthly" | "yearly";
   lastPaidMonth?: string; // e.g. "2026-09" o "2026-10"
   notes?: string;
   createdAt: string;
@@ -78,33 +116,41 @@ export interface RecurringExpense {
 
 export interface DebtLoan {
   id: string;
-  type: 'lent' | 'borrowed'; // 'lent' = presté (me deben) | 'borrowed' = me prestaron (debo)
+  type: "lent" | "borrowed"; // 'lent' = presté (me deben) | 'borrowed' = me prestaron (debo)
   personName: string;
   amount: number;
   dueDate?: string; // YYYY-MM-DD
-  status: 'pending' | 'settled';
+  status: "pending" | "settled";
   notes?: string;
   accountId?: string;
+  currency?: string;
+  // Debt Payoff Strategy features
+  interestRate?: number; // Tasa de Interés Anual (APR %)
+  minimumPayment?: number; // Pago mínimo mensual sugerido o requerido
   settledDate?: string;
   createdAt: string;
 }
 
 export interface UserSettings {
-  currency: string;
-  currencyCode: string;
+  currency: string; // "S/.", "$", "€"
+  currencyCode: string; // "PEN", "USD", "EUR"
   monthlyBudget: number;
-  theme: 'dark' | 'light';
+  theme: "dark" | "light";
   userName: string;
+  exchangeRates: Record<string, number>; // e.g. { "USD": 3.75, "EUR": 4.05, "PEN": 1.0 }
+  phantomExpenseThreshold: number; // Monto límite para considerar gasto hormiga (ej. 20)
 }
 
-export type ActiveTab = 
-  | 'dashboard' 
-  | 'transactions' 
-  | 'wallets' 
-  | 'recurring'
-  | 'debts'
-  | 'budgets' 
-  | 'goals' 
-  | 'analytics' 
-  | 'advisor' 
-  | 'settings';
+export type ActiveTab =
+  | "dashboard"
+  | "transactions"
+  | "wallets"
+  | "recurring"
+  | "debts"
+  | "cashflow"
+  | "challenges"
+  | "budgets"
+  | "goals"
+  | "analytics"
+  | "advisor"
+  | "settings";

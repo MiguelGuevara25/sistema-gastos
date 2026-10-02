@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useFinance } from '../../context/FinanceContext';
-import { MetricCard } from './MetricCard';
-import { ExpenseFlowChart } from './ExpenseFlowChart';
-import { CategoryBreakdown } from './CategoryBreakdown';
-import { RecentTransactions } from './RecentTransactions';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import React from "react";
+import { useFinance } from "../../context/FinanceContext";
+import { MetricCard } from "./MetricCard";
+import { ExpenseFlowChart } from "./ExpenseFlowChart";
+import { CategoryBreakdown } from "./CategoryBreakdown";
+import { RecentTransactions } from "./RecentTransactions";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Wallet,
   TrendingUp,
@@ -22,7 +22,7 @@ import {
   Landmark,
   Receipt,
   HandCoins,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const DashboardView: React.FC = () => {
   const {
@@ -50,20 +50,20 @@ export const DashboardView: React.FC = () => {
   } = useFinance();
 
   const remainingBudget = settings.monthlyBudget - totalExpenses;
-  const incomeCount = transactions.filter((t) => t.type === 'income').length;
-  const expenseCount = transactions.filter((t) => t.type === 'expense').length;
+  const incomeCount = transactions.filter((t) => t.type === "income").length;
+  const expenseCount = transactions.filter((t) => t.type === "expense").length;
 
   const getAccountIcon = (type: string) => {
     switch (type) {
-      case 'wallet':
+      case "wallet":
         return Smartphone;
-      case 'bank':
+      case "bank":
         return Landmark;
-      case 'cash':
+      case "cash":
         return Coins;
-      case 'credit':
+      case "credit":
         return CreditCard;
-      case 'savings':
+      case "savings":
         return PiggyBank;
       default:
         return Wallet;
@@ -78,13 +78,15 @@ export const DashboardView: React.FC = () => {
         <MetricCard
           title="Balance Neto"
           amount={formatCurrency(netBalance)}
-          subtitle={netBalance >= 0 ? 'Superávit del período' : 'Déficit del período'}
+          subtitle={
+            netBalance >= 0 ? "Superávit del período" : "Déficit del período"
+          }
           icon={Wallet}
-          iconColor={netBalance >= 0 ? 'text-zinc-100' : 'text-rose-400'}
-          iconBg={netBalance >= 0 ? 'bg-zinc-800' : 'bg-rose-950/60'}
+          iconColor={netBalance >= 0 ? "text-zinc-100" : "text-rose-400"}
+          iconBg={netBalance >= 0 ? "bg-zinc-800" : "bg-rose-950/60"}
           badge={{
-            text: netBalance >= 0 ? 'Positivo' : 'En rojo',
-            type: netBalance >= 0 ? 'positive' : 'negative',
+            text: netBalance >= 0 ? "Positivo" : "En rojo",
+            type: netBalance >= 0 ? "positive" : "negative",
           }}
         />
 
@@ -98,7 +100,7 @@ export const DashboardView: React.FC = () => {
           iconBg="bg-emerald-950/40"
           badge={{
             text: `+${incomeCount}`,
-            type: 'positive',
+            type: "positive",
           }}
         />
 
@@ -107,9 +109,9 @@ export const DashboardView: React.FC = () => {
           title="Total Gastos"
           amount={formatCurrency(totalExpenses)}
           subtitle={
-            selectedMonth !== 'all' && monthComparison.previousExpenses > 0
+            selectedMonth !== "all" && monthComparison.previousExpenses > 0
               ? `${Math.abs(monthComparison.expenseDiffPercent)}% ${
-                  monthComparison.expenseDiffPercent <= 0 ? 'menos' : 'más'
+                  monthComparison.expenseDiffPercent <= 0 ? "menos" : "más"
                 } que el mes ant.`
               : `${expenseCount} salidas este mes`
           }
@@ -118,7 +120,7 @@ export const DashboardView: React.FC = () => {
           iconBg="bg-rose-950/40"
           badge={{
             text: `${budgetUsagePercent}% cupo`,
-            type: budgetUsagePercent > 100 ? 'negative' : 'neutral',
+            type: budgetUsagePercent > 100 ? "negative" : "neutral",
           }}
         />
 
@@ -132,7 +134,7 @@ export const DashboardView: React.FC = () => {
           iconBg="bg-blue-950/40"
           badge={{
             text: `${savingsRate}% ahorro`,
-            type: savingsRate >= 20 ? 'positive' : 'neutral',
+            type: savingsRate >= 20 ? "positive" : "neutral",
           }}
         />
       </div>
@@ -147,9 +149,14 @@ export const DashboardView: React.FC = () => {
                 <Wallet className="size-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-foreground">Billeteras & Cuentas</h4>
+                <h4 className="text-xs font-bold text-foreground">
+                  Billeteras & Cuentas
+                </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Líquido: <strong className="text-foreground">{formatCurrency(totalLiquidAssets)}</strong>
+                  Líquido:{" "}
+                  <strong className="text-foreground">
+                    {formatCurrency(totalLiquidAssets)}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -157,7 +164,7 @@ export const DashboardView: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveTab('wallets')}
+              onClick={() => setActiveTab("wallets")}
               className="text-xs gap-1 cursor-pointer h-7 text-muted-foreground hover:text-foreground"
             >
               <span>Ver</span>
@@ -166,31 +173,40 @@ export const DashboardView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
-            {accounts.slice(0, 4).map((acc) => {
-              const Icon = getAccountIcon(acc.type);
-              return (
-                <div
-                  key={acc.id}
-                  onClick={() => setActiveTab('wallets')}
-                  className="flex items-center gap-1.5 p-1.5 rounded-lg bg-muted/30 border border-border/50 shrink-0 cursor-pointer hover:bg-muted/60 transition-colors"
-                >
+            {accounts.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic py-1">
+                Sin cuentas registradas
+              </p>
+            ) : (
+              accounts.slice(0, 4).map((acc) => {
+                const Icon = getAccountIcon(acc.type);
+                return (
                   <div
-                    className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${acc.color}20`, color: acc.color }}
+                    key={acc.id}
+                    onClick={() => setActiveTab("wallets")}
+                    className="flex items-center gap-1.5 p-1.5 rounded-lg bg-muted/30 border border-border/50 shrink-0 cursor-pointer hover:bg-muted/60 transition-colors"
                   >
-                    <Icon className="size-3" />
+                    <div
+                      className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: `${acc.color}20`,
+                        color: acc.color,
+                      }}
+                    >
+                      <Icon className="size-3" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-17.5">
+                        {acc.name}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground font-mono">
+                        {formatCurrency(acc.balance)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-17.5">
-                      {acc.name}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground font-mono">
-                      {formatCurrency(acc.balance)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </Card>
 
@@ -202,9 +218,14 @@ export const DashboardView: React.FC = () => {
                 <Receipt className="size-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-foreground">Gastos Fijos del Mes</h4>
+                <h4 className="text-xs font-bold text-foreground">
+                  Gastos Fijos del Mes
+                </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Total: <strong className="text-foreground">{formatCurrency(totalRecurringMonthly)}</strong>
+                  Total:{" "}
+                  <strong className="text-foreground">
+                    {formatCurrency(totalRecurringMonthly)}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -212,7 +233,7 @@ export const DashboardView: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveTab('recurring')}
+              onClick={() => setActiveTab("recurring")}
               className="text-xs gap-1 cursor-pointer h-7 text-muted-foreground hover:text-foreground"
             >
               <span>Ver</span>
@@ -222,7 +243,9 @@ export const DashboardView: React.FC = () => {
 
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground">Cubierto: {formatCurrency(recurringPaidThisMonth)}</span>
+              <span className="text-muted-foreground">
+                Cubierto: {formatCurrency(recurringPaidThisMonth)}
+              </span>
               <span className="font-semibold text-amber-400">
                 Pendiente: {formatCurrency(recurringPendingThisMonth)}
               </span>
@@ -230,7 +253,12 @@ export const DashboardView: React.FC = () => {
             <Progress
               value={
                 totalRecurringMonthly > 0
-                  ? Math.min(100, Math.round((recurringPaidThisMonth / totalRecurringMonthly) * 100))
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (recurringPaidThisMonth / totalRecurringMonthly) * 100,
+                      ),
+                    )
                   : 0
               }
               className="h-1.5"
@@ -246,9 +274,14 @@ export const DashboardView: React.FC = () => {
                 <Target className="size-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-foreground">Metas de Ahorro</h4>
+                <h4 className="text-xs font-bold text-foreground">
+                  Metas de Ahorro
+                </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Ahorrado: <strong className="text-emerald-400">{formatCurrency(totalSavedInGoals)}</strong>
+                  Ahorrado:{" "}
+                  <strong className="text-emerald-400">
+                    {formatCurrency(totalSavedInGoals)}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -256,7 +289,7 @@ export const DashboardView: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveTab('goals')}
+              onClick={() => setActiveTab("goals")}
               className="text-xs gap-1 cursor-pointer h-7 text-muted-foreground hover:text-foreground"
             >
               <span>Ver</span>
@@ -272,16 +305,26 @@ export const DashboardView: React.FC = () => {
                     {goals[0].name}
                   </span>
                   <span className="text-muted-foreground font-mono">
-                    {Math.round((goals[0].currentAmount / goals[0].targetAmount) * 100)}%
+                    {Math.round(
+                      (goals[0].currentAmount / goals[0].targetAmount) * 100,
+                    )}
+                    %
                   </span>
                 </div>
                 <Progress
-                  value={Math.min(100, Math.round((goals[0].currentAmount / goals[0].targetAmount) * 100))}
+                  value={Math.min(
+                    100,
+                    Math.round(
+                      (goals[0].currentAmount / goals[0].targetAmount) * 100,
+                    ),
+                  )}
                   className="h-1.5"
                 />
               </>
             ) : (
-              <p className="text-[11px] text-muted-foreground">Sin metas activas</p>
+              <p className="text-[11px] text-muted-foreground">
+                Sin metas activas
+              </p>
             )}
           </div>
         </Card>
@@ -294,9 +337,14 @@ export const DashboardView: React.FC = () => {
                 <HandCoins className="size-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-foreground">Deudas & Préstamos</h4>
+                <h4 className="text-xs font-bold text-foreground">
+                  Deudas & Préstamos
+                </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Me deben: <strong className="text-emerald-400">{formatCurrency(totalLentPending)}</strong>
+                  Me deben:{" "}
+                  <strong className="text-emerald-400">
+                    {formatCurrency(totalLentPending)}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -304,7 +352,7 @@ export const DashboardView: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveTab('debts')}
+              onClick={() => setActiveTab("debts")}
               className="text-xs gap-1 cursor-pointer h-7 text-muted-foreground hover:text-foreground"
             >
               <span>Ver</span>
@@ -321,8 +369,15 @@ export const DashboardView: React.FC = () => {
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
               <span>Balance neto:</span>
-              <span className={netDebtBalance >= 0 ? 'text-cyan-400 font-semibold' : 'text-rose-400 font-semibold'}>
-                {netDebtBalance >= 0 ? '+' : ''}{formatCurrency(netDebtBalance)}
+              <span
+                className={
+                  netDebtBalance >= 0
+                    ? "text-cyan-400 font-semibold"
+                    : "text-rose-400 font-semibold"
+                }
+              >
+                {netDebtBalance >= 0 ? "+" : ""}
+                {formatCurrency(netDebtBalance)}
               </span>
             </div>
           </div>

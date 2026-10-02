@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useFinance } from '../../context/FinanceContext';
-import { CategoryIcon } from '../ui/CategoryIcon';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useFinance } from "../../context/FinanceContext";
+import { CategoryIcon } from "../ui/CategoryIcon";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Target,
   AlertTriangle,
@@ -16,7 +22,7 @@ import {
   Check,
   ShieldAlert,
   Sparkles,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface BudgetFormData {
   newBudget: number | string;
@@ -41,7 +47,8 @@ export const BudgetView: React.FC = () => {
 
   const budget = settings.monthlyBudget;
   const remaining = budget - totalExpenses;
-  const percentageUsed = budget > 0 ? Math.round((totalExpenses / budget) * 100) : 0;
+  const percentageUsed =
+    budget > 0 ? Math.round((totalExpenses / budget) * 100) : 0;
 
   const onSaveBudget = (data: BudgetFormData) => {
     const val = parseFloat(String(data.newBudget));
@@ -54,29 +61,29 @@ export const BudgetView: React.FC = () => {
   const getStatus = () => {
     if (percentageUsed > 100) {
       return {
-        label: 'Presupuesto Excedido',
-        badgeVariant: 'destructive' as const,
-        color: 'text-rose-400',
-        bg: 'bg-destructive/10 border-destructive/20',
+        label: "Presupuesto Excedido",
+        badgeVariant: "destructive" as const,
+        color: "text-rose-400",
+        bg: "bg-destructive/10 border-destructive/20",
         icon: ShieldAlert,
         desc: `Has gastado ${formatCurrency(Math.abs(remaining))} más de tu límite establecido.`,
       };
     }
     if (percentageUsed >= 80) {
       return {
-        label: 'Cerca del Límite',
-        badgeVariant: 'secondary' as const,
-        color: 'text-amber-400',
-        bg: 'bg-amber-500/10 border-amber-500/20',
+        label: "Cerca del Límite",
+        badgeVariant: "secondary" as const,
+        color: "text-amber-400",
+        bg: "bg-amber-500/10 border-amber-500/20",
         icon: AlertTriangle,
         desc: `Te queda disponible ${formatCurrency(remaining)} para el resto del mes.`,
       };
     }
     return {
-      label: 'Bajo Control',
-      badgeVariant: 'default' as const,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      label: "Bajo Control",
+      badgeVariant: "default" as const,
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
       icon: CheckCircle2,
       desc: `Excelente disciplina financiera. Tienes disponible ${formatCurrency(remaining)}.`,
     };
@@ -106,7 +113,10 @@ export const BudgetView: React.FC = () => {
 
           <div>
             {isEditingBudget ? (
-              <form onSubmit={handleSubmit(onSaveBudget)} className="flex items-center gap-2">
+              <form
+                onSubmit={handleSubmit(onSaveBudget)}
+                className="flex items-center gap-2"
+              >
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-semibold">
                     {settings.currency}
@@ -115,7 +125,7 @@ export const BudgetView: React.FC = () => {
                     type="number"
                     step="50"
                     min="1"
-                    {...register('newBudget', { required: true })}
+                    {...register("newBudget", { required: true })}
                     autoFocus
                     className="w-32 pl-8 h-8 text-sm"
                   />
@@ -146,7 +156,9 @@ export const BudgetView: React.FC = () => {
         <CardContent className="space-y-4 pt-2">
           <div className="flex items-end justify-between">
             <div>
-              <span className="text-xs text-muted-foreground font-medium">Consumido</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Consumido
+              </span>
               <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(totalExpenses)}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -159,10 +171,10 @@ export const BudgetView: React.FC = () => {
               <span
                 className={`text-xl font-extrabold ${
                   percentageUsed > 100
-                    ? 'text-rose-400'
+                    ? "text-rose-400"
                     : percentageUsed > 80
-                    ? 'text-amber-400'
-                    : 'text-foreground'
+                      ? "text-amber-400"
+                      : "text-foreground"
                 }`}
               >
                 {percentageUsed}%
@@ -172,10 +184,7 @@ export const BudgetView: React.FC = () => {
 
           {/* shadcn Progress component */}
           <div className="w-full">
-            <Progress
-              value={Math.min(100, percentageUsed)}
-              className="h-2.5"
-            />
+            <Progress value={Math.min(100, percentageUsed)} className="h-2.5" />
           </div>
 
           {/* Status Message */}
@@ -199,7 +208,8 @@ export const BudgetView: React.FC = () => {
             Consumo por Categorías
           </CardTitle>
           <CardDescription className="text-xs">
-            Supervisa qué áreas están consumiendo mayor proporción de tus recursos
+            Supervisa qué áreas están consumiendo mayor proporción de tus
+            recursos
           </CardDescription>
         </CardHeader>
 
@@ -223,7 +233,9 @@ export const BudgetView: React.FC = () => {
                       <div className="flex items-center gap-2.5">
                         <div
                           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: `${item.category.color}20` }}
+                          style={{
+                            backgroundColor: `${item.category.color}20`,
+                          }}
                         >
                           <CategoryIcon
                             name={item.category.icon}
@@ -236,7 +248,8 @@ export const BudgetView: React.FC = () => {
                             {item.category.name}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {item.count} {item.count === 1 ? 'transacción' : 'transacciones'}
+                            {item.count}{" "}
+                            {item.count === 1 ? "transacción" : "transacciones"}
                           </p>
                         </div>
                       </div>

@@ -1,14 +1,21 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useFinance } from '../../context/FinanceContext';
-import { CategoryIcon } from '../ui/CategoryIcon';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PieChart, ArrowRight } from 'lucide-react';
+import React from "react";
+import { useFinance } from "../../context/FinanceContext";
+import { CategoryIcon } from "../ui/CategoryIcon";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PieChart, ArrowRight } from "lucide-react";
 
 export const CategoryBreakdown: React.FC = () => {
-  const { categoryBreakdown, formatCurrency, totalExpenses, setActiveTab } = useFinance();
+  const { categoryBreakdown, formatCurrency, totalExpenses, setActiveTab } =
+    useFinance();
 
   const topCategories = categoryBreakdown.slice(0, 5);
 
@@ -41,7 +48,7 @@ export const CategoryBreakdown: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setActiveTab('analytics')}
+          onClick={() => setActiveTab("analytics")}
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium cursor-pointer h-7 px-2"
         >
           Ver todo
@@ -70,7 +77,10 @@ export const CategoryBreakdown: React.FC = () => {
                   />
                   {donutSlices.map((slice) => {
                     const strokeDasharray = `${(slice.percentage * circumference) / 100} ${circumference}`;
-                    const strokeDashoffset = -((slice.startAngle / 360) * circumference);
+                    const strokeDashoffset = -(
+                      (slice.startAngle / 360) *
+                      circumference
+                    );
 
                     return (
                       <circle

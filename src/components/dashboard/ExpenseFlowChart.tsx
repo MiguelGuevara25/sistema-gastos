@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useFinance } from '../../context/FinanceContext';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { BarChart3 } from 'lucide-react';
+import { useState } from "react";
+import { useFinance } from "../../context/FinanceContext";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { BarChart3 } from "lucide-react";
 
 export const ExpenseFlowChart: React.FC = () => {
   const { monthlyExpenseTrend, formatCurrency } = useFinance();
@@ -12,7 +18,7 @@ export const ExpenseFlowChart: React.FC = () => {
   // Find max value to scale chart height
   const maxValue = Math.max(
     ...monthlyExpenseTrend.flatMap((d) => [d.income, d.expenses]),
-    100
+    100,
   );
 
   return (
@@ -44,8 +50,14 @@ export const ExpenseFlowChart: React.FC = () => {
       <CardContent className="pt-4">
         <div className="h-56 w-full flex items-end gap-2 sm:gap-6 pt-6 pb-2 border-b border-border">
           {monthlyExpenseTrend.map((item, index) => {
-            const incomeHeight = Math.max(4, Math.round((item.income / maxValue) * 100));
-            const expenseHeight = Math.max(4, Math.round((item.expenses / maxValue) * 100));
+            const incomeHeight = Math.max(
+              4,
+              Math.round((item.income / maxValue) * 100),
+            );
+            const expenseHeight = Math.max(
+              4,
+              Math.round((item.expenses / maxValue) * 100),
+            );
             const isHovered = hoveredIndex === index;
 
             return (
@@ -84,7 +96,9 @@ export const ExpenseFlowChart: React.FC = () => {
                 {/* Month label */}
                 <span
                   className={`text-[11px] mt-2 transition-colors ${
-                    isHovered ? 'text-foreground font-semibold' : 'text-muted-foreground'
+                    isHovered
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {item.month}

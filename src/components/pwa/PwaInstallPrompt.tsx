@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -10,32 +10,34 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Download,
   Smartphone,
   Share,
   PlusSquare,
   Sparkles,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
 export const PwaInstallPrompt: React.FC = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     // Check if running in standalone mode (already installed PWA)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone ===
+          true;
       if (isStandalone) {
         setIsInstalled(true);
       }
@@ -51,10 +53,13 @@ export const PwaInstallPrompt: React.FC = () => {
         setDeferredPrompt(e as BeforeInstallPromptEvent);
       };
 
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
       return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          handleBeforeInstallPrompt,
+        );
       };
     }
   }, []);
@@ -63,7 +68,7 @@ export const PwaInstallPrompt: React.FC = () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      if (outcome === "accepted") {
         setIsInstalled(true);
         setDeferredPrompt(null);
       }
@@ -100,7 +105,9 @@ export const PwaInstallPrompt: React.FC = () => {
               Instalar Finanza en tu Celular
             </DialogTitle>
             <DialogDescription>
-              Disfruta de una experiencia fluida a pantalla completa, acceso instantáneo desde tu pantalla de inicio y funcionamiento sin barras del navegador.
+              Disfruta de una experiencia fluida a pantalla completa, acceso
+              instantáneo desde tu pantalla de inicio y funcionamiento sin
+              barras del navegador.
             </DialogDescription>
           </DialogHeader>
 
@@ -109,29 +116,36 @@ export const PwaInstallPrompt: React.FC = () => {
               // iOS Instructions
               <div className="space-y-3 bg-muted/40 p-3.5 rounded-xl border border-border">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
-                  <Badge variant="secondary" className="px-2 py-0.5 text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="px-2 py-0.5 text-[10px]"
+                  >
                     iPhone / iPad (Safari)
                   </Badge>
                 </div>
                 <ol className="space-y-2.5 text-xs text-muted-foreground list-decimal list-inside">
                   <li className="leading-relaxed">
-                    Abre esta web en el navegador <strong>Safari</strong> de tu iPhone.
+                    Abre esta web en el navegador <strong>Safari</strong> de tu
+                    iPhone.
                   </li>
                   <li className="leading-relaxed">
-                    Toca el botón <strong>Compartir</strong>{' '}
+                    Toca el botón <strong>Compartir</strong>{" "}
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 text-foreground border border-zinc-700 font-mono">
                       <Share className="size-3 inline" /> Compartir
-                    </span>{' '}
+                    </span>{" "}
                     (en la barra inferior).
                   </li>
                   <li className="leading-relaxed">
-                    Desplázate hacia abajo y selecciona{' '}
+                    Desplázate hacia abajo y selecciona{" "}
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 text-foreground border border-zinc-700 font-medium">
                       <PlusSquare className="size-3 inline" /> Agregar a inicio
-                    </span>.
+                    </span>
+                    .
                   </li>
                   <li className="leading-relaxed">
-                    Pulsa <strong>Agregar</strong> arriba a la derecha. ¡Listo! Tendrás el ícono en tu pantalla de inicio como una aplicación nativa.
+                    Pulsa <strong>Agregar</strong> arriba a la derecha. ¡Listo!
+                    Tendrás el ícono en tu pantalla de inicio como una
+                    aplicación nativa.
                   </li>
                 </ol>
               </div>
@@ -139,19 +153,27 @@ export const PwaInstallPrompt: React.FC = () => {
               // Android / Desktop Instructions
               <div className="space-y-3 bg-muted/40 p-3.5 rounded-xl border border-border">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
-                  <Badge variant="secondary" className="px-2 py-0.5 text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="px-2 py-0.5 text-[10px]"
+                  >
                     Android (Chrome) o PC
                   </Badge>
                 </div>
                 <ol className="space-y-2.5 text-xs text-muted-foreground list-decimal list-inside">
                   <li className="leading-relaxed">
-                    Toca el menú de tres puntos (<strong>⋮</strong>) en la esquina superior derecha del navegador.
+                    Toca el menú de tres puntos (<strong>⋮</strong>) en la
+                    esquina superior derecha del navegador.
                   </li>
                   <li className="leading-relaxed">
-                    Selecciona <strong>&quot;Instalar aplicación&quot;</strong> o <strong>&quot;Agregar a la pantalla principal&quot;</strong>.
+                    Selecciona <strong>&quot;Instalar aplicación&quot;</strong>{" "}
+                    o{" "}
+                    <strong>&quot;Agregar a la pantalla principal&quot;</strong>
+                    .
                   </li>
                   <li className="leading-relaxed">
-                    Confirma y la app se añadirá directamente a tu cajón de aplicaciones.
+                    Confirma y la app se añadirá directamente a tu cajón de
+                    aplicaciones.
                   </li>
                 </ol>
               </div>
@@ -160,7 +182,9 @@ export const PwaInstallPrompt: React.FC = () => {
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
               <Sparkles className="size-4 shrink-0 mt-0.5" />
               <p>
-                <strong>100% Privado y Rápido:</strong> Todos tus datos permanecen seguros en tu dispositivo y se sincronizan cuando tú lo decidas.
+                <strong>100% Privado y Rápido:</strong> Todos tus datos
+                permanecen seguros en tu dispositivo y se sincronizan cuando tú
+                lo decidas.
               </p>
             </div>
           </div>

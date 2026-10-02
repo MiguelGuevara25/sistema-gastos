@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CreditCard, Calendar, Percent } from "lucide-react";
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -28,6 +29,12 @@ interface AccountFormData {
   balance: number | string;
   color: string;
   accountNumber: string;
+  currency: string;
+  // Credit card specifics
+  creditLimit?: number | string;
+  closingDay?: number | string;
+  dueDay?: number | string;
+  apr?: number | string;
 }
 
 const ACCOUNT_COLORS = [
@@ -46,7 +53,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onClose,
   accountToEdit,
 }) => {
-  const { addAccount, updateAccount } = useFinance();
+  const { addAccount, updateAccount, settings } = useFinance();
 
   const defaultValues: AccountFormData = useMemo(
     () => ({
@@ -55,8 +62,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       balance: "",
       color: "#8b5cf6",
       accountNumber: "",
+      currency: settings.currencyCode || "PEN",
+      creditLimit: "3000",
+      closingDay: "20",
+      dueDay: "15",
+      apr: "38.5",
     }),
-    [],
+    [settings.currencyCode],
   );
 
   const { register, handleSubmit, setValue, watch, reset } =
@@ -68,11 +80,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             balance: accountToEdit.balance,
             color: accountToEdit.color,
             accountNumber: accountToEdit.accountNumber || "",
+            currency: accountToEdit.currency || settings.currencyCode,
+            creditLimit: accountToEdit.creditLimit !== undefined ? accountToEdit.creditLimit.toString() : "3000",
+            closingDay: accountToEdit.closingDay !== undefined ? accountToEdit.closingDay.toString() : "20",
+            dueDay: accountToEdit.dueDay !== undefined ? accountToEdit.dueDay.toString() : "15",
+            apr: accountToEdit.apr !== undefined ? accountToEdit.apr.toString() : "38.5",
           }
         : defaultValues,
     });
 
   const currentColor = watch("color");
+  const currentType = watch("type");
 
   const handleClose = () => {
     reset(defaultValues);
@@ -83,20 +101,36 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     if (!data.name.trim()) return;
     const initialBal = parseFloat(String(data.balance)) || 0;
 
+    const isCredit = data.type === "credit";
+    const creditLimitVal = isCredit ? parseFloat(String(data.creditLimit)) : undefined;
+    const closingDayVal = isCredit ? parseInt(String(data.closingDay), 10) : undefined;
+    const dueDayVal = isCredit ? parseInt(String(data.dueDay), 10) : undefined;
+    const aprVal = isCredit ? parseFloat(String(data.apr)) : undefined;
+
     if (accountToEdit) {
       updateAccount(accountToEdit.id, {
         name: data.name.trim(),
         type: data.type,
         color: data.color,
         accountNumber: data.accountNumber.trim() || undefined,
+        currency: data.currency || settings.currencyCode,
+        creditLimit: !isNaN(creditLimitVal || NaN) ? creditLimitVal : undefined,
+        closingDay: !isNaN(closingDayVal || NaN) ? closingDayVal : undefined,
+        dueDay: !isNaN(dueDayVal || NaN) ? dueDayVal : undefined,
+        apr: !isNaN(aprVal || NaN) ? aprVal : undefined,
       });
     } else {
       addAccount({
         name: data.name.trim(),
         type: data.type,
-        balance: initialBal,
+        balance: isCredit && initialBal > 0 ? -initialBal : initialBal,
         color: data.color,
         accountNumber: data.accountNumber.trim() || undefined,
+        currency: data.currency || settings.currencyCode,
+        creditLimit: !isNaN(creditLimitVal || NaN) ? creditLimitVal : undefined,
+        closingDay: !isNaN(closingDayVal || NaN) ? closingDayVal : undefined,
+        dueDay: !isNaN(dueDayVal || NaN) ? dueDayVal : undefined,
+        apr: !isNaN(aprVal || NaN) ? aprVal : undefined,
       });
     }
 
@@ -105,27 +139,27 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">
             {accountToEdit
-              ? "Editar Cuenta o Billetera"
-              : "Nueva Cuenta o Billetera"}
+              ? "Editar Cuenta o Tarjeta"
+              : "Nueva Cuenta o Tarjeta"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             Registra una cuenta bancaria, billetera digital, efectivo o tarjeta
-            de crédito
+            de crédito con ciclo de facturación
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">
-              Nombre de la Cuenta
+              Nombre de la Cuenta / Tarjeta
             </Label>
             <Input
               type="text"
-              placeholder="ej: Yape, BBVA Ahorros, Efectivo..."
+              placeholder="ej: Yape, BBVA Ahorros, Tarjeta Visa BCP..."
               {...register("name", { required: true })}
               className="h-9 text-xs"
               required
@@ -141,68 +175,141 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 {...register("type")}
                 className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none"
               >
-                <option
-                  value="savings"
-                  className="bg-popover text-popover-foreground"
-                >
-                  🐷 Cuenta de Ahorro / Capital Reserva
-                </option>
-                <option
-                  value="wallet"
-                  className="bg-popover text-popover-foreground"
-                >
+                <option value="wallet" className="bg-popover text-popover-foreground">
                   📱 Billetera Digital (Yape / Plin)
                 </option>
-                <option
-                  value="bank"
-                  className="bg-popover text-popover-foreground"
-                >
-                  🏦 Cuenta Bancaria
+                <option value="bank" className="bg-popover text-popover-foreground">
+                  🏦 Cuenta Bancaria (Sueldo / Operativa)
                 </option>
-                <option
-                  value="cash"
-                  className="bg-popover text-popover-foreground"
-                >
+                <option value="savings" className="bg-popover text-popover-foreground">
+                  🐷 Cuenta de Ahorro / Inversión
+                </option>
+                <option value="cash" className="bg-popover text-popover-foreground">
                   💵 Efectivo
                 </option>
-                <option
-                  value="credit"
-                  className="bg-popover text-popover-foreground"
-                >
+                <option value="credit" className="bg-popover text-popover-foreground">
                   💳 Tarjeta de Crédito
                 </option>
               </select>
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Moneda de la Cuenta
+              </Label>
+              <select
+                {...register("currency")}
+                className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none font-semibold"
+              >
+                <option value="PEN" className="bg-popover text-popover-foreground">
+                  S/. Soles (PEN)
+                </option>
+                <option value="USD" className="bg-popover text-popover-foreground">
+                  $ Dólares (USD)
+                </option>
+                <option value="EUR" className="bg-popover text-popover-foreground">
+                  € Euros (EUR)
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             {!accountToEdit && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">
-                  Saldo Inicial
+                  {currentType === "credit" ? "Saldo Consumido Inicial" : "Saldo Inicial"}
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   {...register("balance")}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs font-mono font-semibold"
                 />
               </div>
             )}
 
-            {accountToEdit && (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Identificador / Dígitos
-                </Label>
-                <Input
-                  type="text"
-                  placeholder="ej: *4821"
-                  {...register("accountNumber")}
-                  className="h-9 text-xs"
-                />
-              </div>
-            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Identificador / N° Tarjeta (Opcional)
+              </Label>
+              <Input
+                type="text"
+                placeholder="ej: *4821"
+                {...register("accountNumber")}
+                className="h-9 text-xs"
+              />
+            </div>
           </div>
+
+          {/* Configuración avanzada de Tarjeta de Crédito */}
+          {currentType === "credit" && (
+            <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-3">
+              <p className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
+                <CreditCard className="size-3.5" />
+                Ciclo y Límites de la Tarjeta de Crédito
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">
+                    Línea de Crédito Total
+                  </Label>
+                  <Input
+                    type="number"
+                    min="100"
+                    placeholder="3000"
+                    {...register("creditLimit")}
+                    className="h-8 text-xs font-mono bg-background"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Percent className="size-3" /> Tasa Anual (TEA %)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="38.5"
+                    {...register("apr")}
+                    className="h-8 text-xs font-mono bg-background"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="size-3" /> Día de Corte (1-31)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="20"
+                    {...register("closingDay")}
+                    className="h-8 text-xs font-mono bg-background"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="size-3" /> Día Límite de Pago (1-31)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="15"
+                    {...register("dueDay")}
+                    className="h-8 text-xs font-mono bg-background"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">

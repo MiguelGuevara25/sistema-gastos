@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useFinance } from '../../context/FinanceContext';
-import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
-import { Button } from '@/components/ui/button';
+import { useFinance } from "../../context/FinanceContext";
+import { PwaInstallPrompt } from "../pwa/PwaInstallPrompt";
+import { Button } from "@/components/ui/button";
 import {
   Menu,
   Plus,
@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-} from 'lucide-react';
+  Cloud,
+  LogIn,
+} from "lucide-react";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -31,39 +33,82 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     availableMonths,
     goToPreviousMonth,
     goToNextMonth,
+    user,
+    setIsAuthModalOpen,
+    isCloudSyncing,
   } = useFinance();
 
   const getTabTitle = () => {
     switch (activeTab) {
-      case 'dashboard':
-        return { title: 'Panel General', subtitle: 'Vista global de tus finanzas e ingresos' };
-      case 'transactions':
-        return { title: 'Movimientos', subtitle: 'Historial completo y gestión de gastos e ingresos' };
-      case 'wallets':
-        return { title: 'Billeteras & Cuentas', subtitle: 'Control de saldos en bancos, Yape, Plin y efectivo' };
-      case 'recurring':
-        return { title: 'Gastos Fijos & Servicios', subtitle: 'Obligaciones mensuales, suscripciones y vencimientos' };
-      case 'debts':
-        return { title: 'Deudas & Préstamos', subtitle: 'Control de personas que te deben y deudas que debes pagar' };
-      case 'budgets':
-        return { title: 'Presupuestos', subtitle: 'Límites mensuales y control de consumo' };
-      case 'goals':
-        return { title: 'Metas de Ahorro', subtitle: 'Alcanza tus objetivos y fondos de emergencia' };
-      case 'analytics':
-        return { title: 'Estadísticas', subtitle: 'Distribución y métricas de gastos' };
-      case 'advisor':
-        return { title: 'Simulador & Consejos', subtitle: 'Diagnóstico 50/30/20, interés compuesto e inversión' };
-      case 'settings':
-        return { title: 'Configuración', subtitle: 'Ajustes del sistema y copias de seguridad' };
+      case "dashboard":
+        return {
+          title: "Panel General",
+          subtitle: "Vista global de tus finanzas e ingresos",
+        };
+      case "transactions":
+        return {
+          title: "Movimientos",
+          subtitle: "Historial completo y gestión de gastos e ingresos",
+        };
+      case "wallets":
+        return {
+          title: "Billeteras & Tarjetas",
+          subtitle: "Control de saldos en bancos, multi-divisa y ciclo de tarjetas",
+        };
+      case "cashflow":
+        return {
+          title: "Flujo de Caja Futuro",
+          subtitle: "Proyección predictiva de liquidez a 30, 60 y 90 días",
+        };
+      case "recurring":
+        return {
+          title: "Gastos Fijos & Servicios",
+          subtitle: "Obligaciones mensuales, suscripciones y vencimientos",
+        };
+      case "debts":
+        return {
+          title: "Deudas & Préstamos",
+          subtitle: "Control de cobros y simulador Bola de Nieve vs Avalancha",
+        };
+      case "challenges":
+        return {
+          title: "Retos de Ahorro",
+          subtitle: "Desafíos gamificados de 52 semanas, anti-fugas y medallas",
+        };
+      case "budgets":
+        return {
+          title: "Presupuestos",
+          subtitle: "Límites mensuales y control de consumo",
+        };
+      case "goals":
+        return {
+          title: "Metas de Ahorro",
+          subtitle: "Alcanza tus objetivos y fondos de emergencia",
+        };
+      case "analytics":
+        return {
+          title: "Estadísticas",
+          subtitle: "Distribución y métricas de gastos",
+        };
+      case "advisor":
+        return {
+          title: "Simulador & Consejos",
+          subtitle: "Diagnóstico 50/30/20, interés compuesto e inversión",
+        };
+      case "settings":
+        return {
+          title: "Configuración",
+          subtitle: "Ajustes del sistema y copias de seguridad",
+        };
       default:
-        return { title: 'Finanzas', subtitle: 'Sistema de Gastos' };
+        return { title: "Finanzas", subtitle: "Sistema de Gastos" };
     }
   };
 
   const { title, subtitle } = getTabTitle();
 
   const toggleTheme = () => {
-    updateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' });
+    updateSettings({ theme: settings.theme === "dark" ? "light" : "dark" });
   };
 
   return (
@@ -97,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             variant="ghost"
             size="sm"
             onClick={goToPreviousMonth}
-            disabled={selectedMonth === 'all'}
+            disabled={selectedMonth === "all"}
             title="Mes anterior"
             className="h-7 w-6 sm:w-7 p-0 cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30"
           >
@@ -111,11 +156,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               className="bg-transparent text-[11px] sm:text-xs font-semibold text-foreground cursor-pointer focus:outline-none appearance-none pr-3 sm:pr-4 pl-0.5 sm:pl-1.5 py-1 max-w-19.5 sm:max-w-none truncate"
             >
               {availableMonths.map((m) => (
-                <option key={m.value} value={m.value} className="bg-popover text-popover-foreground">
+                <option
+                  key={m.value}
+                  value={m.value}
+                  className="bg-popover text-popover-foreground"
+                >
                   {m.label}
                 </option>
               ))}
-              <option value="all" className="bg-popover text-popover-foreground">
+              <option
+                value="all"
+                className="bg-popover text-popover-foreground"
+              >
                 📅 Histórico completo
               </option>
             </select>
@@ -126,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             variant="ghost"
             size="sm"
             onClick={goToNextMonth}
-            disabled={selectedMonth === 'all'}
+            disabled={selectedMonth === "all"}
             title="Mes siguiente"
             className="h-7 w-6 sm:w-7 p-0 cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30"
           >
@@ -151,15 +203,49 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <PwaInstallPrompt />
         </div>
 
+        {/* Supabase Cloud Auth Button */}
+        {user ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAuthModalOpen(true)}
+            title={`Conectado a la nube: ${user.email}`}
+            className="cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-medium text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+          >
+            <Cloud className="size-3.5 shrink-0" />
+            <span className="hidden sm:inline truncate max-w-[100px]">
+              {user.user_metadata?.full_name || user.email?.split("@")[0]}
+            </span>
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAuthModalOpen(true)}
+            className="cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-semibold border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+          >
+            <LogIn className="size-3.5 shrink-0" />
+            <span className="hidden sm:inline">Iniciar Sesión</span>
+          </Button>
+        )}
+
         {/* Theme toggle */}
         <Button
           variant="outline"
           size="sm"
           onClick={toggleTheme}
-          title={settings.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          title={
+            settings.theme === "dark"
+              ? "Cambiar a modo claro"
+              : "Cambiar a modo oscuro"
+          }
           className="cursor-pointer h-8 w-8 p-0 shrink-0"
         >
-          {settings.theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          {settings.theme === "dark" ? (
+            <Sun className="size-4" />
+          ) : (
+            <Moon className="size-4" />
+          )}
         </Button>
 
         {/* Quick Add Button (Desktop only, mobile uses bottom floating button) */}

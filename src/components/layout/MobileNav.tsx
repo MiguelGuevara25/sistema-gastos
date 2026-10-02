@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useFinance } from '../../context/FinanceContext';
+import { useFinance } from "../../context/FinanceContext";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -8,14 +8,15 @@ import {
   HandCoins,
   Plus,
   Menu,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface MobileNavProps {
   onOpenMenu: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
-  const { activeTab, setActiveTab, setIsAddModalOpen, setEditingTransaction } = useFinance();
+  const { activeTab, setActiveTab, setIsAddModalOpen, setEditingTransaction } =
+    useFinance();
 
   const handleOpenAdd = () => {
     setEditingTransaction(null);
@@ -27,9 +28,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {/* Inicio */}
         <button
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => setActiveTab("dashboard")}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'dashboard' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+            activeTab === "dashboard"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <LayoutDashboard className="size-5 mb-0.5" />
@@ -38,9 +41,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
 
         {/* Movimientos */}
         <button
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => setActiveTab("transactions")}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'transactions' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+            activeTab === "transactions"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <ArrowLeftRight className="size-5 mb-0.5" />
@@ -60,9 +65,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
 
         {/* Cuentas / Billeteras */}
         <button
-          onClick={() => setActiveTab('wallets')}
+          onClick={() => setActiveTab("wallets")}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'wallets' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+            activeTab === "wallets"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Wallet className="size-5 mb-0.5" />
@@ -71,9 +78,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
 
         {/* Deudas */}
         <button
-          onClick={() => setActiveTab('debts')}
+          onClick={() => setActiveTab("debts")}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'debts' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+            activeTab === "debts"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <HandCoins className="size-5 mb-0.5" />
