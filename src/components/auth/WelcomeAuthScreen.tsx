@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 export const WelcomeAuthScreen: React.FC = () => {
-  const { enableDemoMode } = useFinance();
+  const { enableDemoMode, enableLocalMode } = useFinance();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -290,21 +290,31 @@ export const WelcomeAuthScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Try Demo Mode Button */}
-            <div className="space-y-2">
+            {/* Local Mode & Demo Mode Options */}
+            <div className="space-y-2.5">
+              <Button
+                type="button"
+                variant="default"
+                onClick={enableLocalMode}
+                className="w-full h-11 text-xs font-bold cursor-pointer gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all"
+              >
+                <Wallet className="size-4" />
+                <span>Continuar en Modo Local (Mis datos en este equipo)</span>
+                <ArrowRight className="size-3.5 ml-auto text-emerald-200" />
+              </Button>
+
               <Button
                 type="button"
                 variant="outline"
                 onClick={enableDemoMode}
-                className="w-full h-11 text-xs font-bold cursor-pointer gap-2 border-primary/40 hover:bg-primary/10 hover:border-primary text-foreground shadow-xs transition-all"
+                className="w-full h-9 text-xs font-medium cursor-pointer gap-2 border-border/80 hover:bg-muted/40 text-muted-foreground hover:text-foreground shadow-xs transition-all"
               >
-                <Sparkles className="size-4 text-primary animate-pulse" />
-                <span>Probar Modo Demo (Sin registrarte)</span>
-                <ArrowRight className="size-3.5 ml-auto text-muted-foreground" />
+                <Sparkles className="size-3.5 text-primary" />
+                <span>Probar con datos de muestra (Modo Demo)</span>
               </Button>
 
               <p className="text-[11px] text-center text-muted-foreground leading-tight">
-                Podrás interactuar con gráficos de muestra, registrar gastos simulados y ver cómo funciona el sistema.
+                El Modo Local guarda todos tus movimientos de forma privada y permanente en este navegador.
               </p>
             </div>
           </CardContent>

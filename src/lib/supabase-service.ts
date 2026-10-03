@@ -245,7 +245,7 @@ export const supabaseService = {
       catRes,
     ] = await Promise.all([
       supabase.from("accounts").select("*").eq("user_id", userId),
-      supabase.from("transactions").select("*").eq("user_id", userId).order("date", { ascending: false }),
+      supabase.from("transactions").select("*").eq("user_id", userId).order("date", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("recurring_expenses").select("*").eq("user_id", userId),
       supabase.from("debts_loans").select("*").eq("user_id", userId),
       supabase.from("savings_goals").select("*").eq("user_id", userId),
@@ -295,7 +295,12 @@ export const supabaseService = {
   async insertTransaction(userId: string, tx: Transaction) {
     if (!supabase) return null;
     const payload = mapTransactionToDB(userId, tx);
-    const { data, error } = await supabase.from("transactions").upsert(payload).select();
+    let { data, error } = await supabase.from("transactions").upsert(payload).select();
+    if (error && error.message?.includes("transactions_account_id_fkey")) {
+      const safePayload = { ...payload, account_id: null };
+      const retry = await supabase.from("transactions").upsert(safePayload).select();
+      if (!retry.error) return retry.data;
+    }
     if (error) {
       console.error("Error inserting transaction to Supabase:", error);
       throw error;

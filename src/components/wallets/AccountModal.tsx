@@ -222,7 +222,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 </Label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="any"
                   placeholder="0.00"
                   {...register("balance")}
                   className="h-9 text-xs font-mono font-semibold"

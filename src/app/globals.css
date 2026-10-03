@@ -181,6 +181,29 @@ body:has([data-slot="dialog-overlay"]) {
   touch-action: none;
 }
 
+[data-slot="dialog-content"] {
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent iOS Safari auto-zoom on input focus when font-size < 16px */
+@media screen and (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area utilities for iPhone notch & home bar */
+.safe-area-bottom,
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+
 @media print {
   @page {
     size: A4 portrait;

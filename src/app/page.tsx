@@ -31,6 +31,7 @@ const AppContent: React.FC = () => {
     isLoaded,
     user,
     isDemoMode,
+    isLocalMode,
     setIsAuthModalOpen,
     isReportModalOpen,
     setIsReportModalOpen,
@@ -54,8 +55,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 2. Welcome / Login Gate Screen (if not logged in and not in demo mode)
-  if (!user && !isDemoMode) {
+  // 2. Welcome / Login Gate Screen (if not logged in, not in demo mode, and not in local mode)
+  if (!user && !isDemoMode && !isLocalMode) {
     return <WelcomeAuthScreen />;
   }
 

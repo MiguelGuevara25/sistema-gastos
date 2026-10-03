@@ -27,13 +27,19 @@ import {
   Info,
   Clock,
   Coins,
+  AlertTriangle,
+  CheckCircle2,
+  ShoppingBag,
 } from "lucide-react";
 
 export const FinancialAdvisorView: React.FC = () => {
   const {
     transactions,
+    allTransactions,
     totalIncome,
     totalExpenses,
+    totalLiquidAssets,
+    totalSavingsCapital,
     savingsRate,
     budgetUsagePercent,
     goals,
@@ -47,6 +53,176 @@ export const FinancialAdvisorView: React.FC = () => {
   const [monthlyContribution, setMonthlyContribution] = useState("300");
   const [annualRate, setAnnualRate] = useState("10"); // 10% S&P500 average
   const [investmentYears, setInvestmentYears] = useState("10");
+
+  // Average or detected monthly income fallback
+  const detectedIncome = useMemo(() => {
+    if (totalIncome > 0) return totalIncome;
+    const incomeTxs = allTransactions.filter((t) => t.type === "income");
+    if (incomeTxs.length > 0) {
+      const months = new Set(incomeTxs.map((t) => t.date.substring(0, 7)));
+      const sum = incomeTxs.reduce((s, t) => s + t.amount, 0);
+      return Math.round(sum / Math.max(1, months.size));
+    }
+    if (settings.monthlyBudget > 0) return settings.monthlyBudget;
+    return 2500;
+  }, [totalIncome, allTransactions, settings.monthlyBudget]);
+
+  // Scratchpad (Simulador Arenero) State
+  const [purchaseName, setPurchaseName] = useState("Nueva Laptop / Viaje");
+  const [purchaseAmount, setPurchaseAmount] = useState("2400");
+  const [purchaseCurrency, setPurchaseCurrency] = useState(
+    settings.currencyCode || "PEN",
+  );
+  const [purchaseIncome, setPurchaseIncome] = useState<string>("");
+  const [purchasePaymentType, setPurchasePaymentType] = useState<
+    "contado" | "cuotas"
+  >("cuotas");
+  const [purchaseInstallments, setPurchaseInstallments] = useState("6");
+  const [purchaseInterestRate, setPurchaseInterestRate] = useState("0");
+
+  const scratchpadAnalysis = useMemo(() => {
+    const rawAmt = parseFloat(purchaseAmount) || 0;
+    const n = Math.max(1, parseInt(purchaseInstallments) || 1);
+    const annualRate = parseFloat(purchaseInterestRate) || 0;
+
+    let monthlyPayment = 0;
+    let totalCost = rawAmt;
+    let totalInterest = 0;
+
+    if (purchasePaymentType === "contado") {
+      monthlyPayment = rawAmt;
+      totalCost = rawAmt;
+      totalInterest = 0;
+    } else {
+      if (annualRate > 0) {
+        const monthlyRate = annualRate / 100 / 12;
+        monthlyPayment =
+          rawAmt *
+          ((monthlyRate * Math.pow(1 + monthlyRate, n)) /
+            (Math.pow(1 + monthlyRate, n) - 1));
+        totalCost = monthlyPayment * n;
+        totalInterest = Math.max(0, totalCost - rawAmt);
+      } else {
+        monthlyPayment = rawAmt / n;
+        totalCost = rawAmt;
+        totalInterest = 0;
+      }
+    }
+
+    const activeIncome =
+      purchaseIncome !== "" && !isNaN(parseFloat(purchaseIncome))
+        ? parseFloat(purchaseIncome)
+        : detectedIncome;
+
+    const currentSurplus = activeIncome - totalExpenses;
+    const projectedSurplus = currentSurplus - monthlyPayment;
+
+    const currentSavingsRate =
+      activeIncome > 0
+        ? Math.max(0, Math.round((currentSurplus / activeIncome) * 100))
+        : 0;
+    const projectedSavingsRate =
+      activeIncome > 0
+        ? Math.max(0, Math.round((projectedSurplus / activeIncome) * 100))
+        : 0;
+
+    // Hours of work: activeIncome / 160
+    const hourlyWage = activeIncome > 0 ? activeIncome / 160 : 20;
+    const hoursOfWork = Math.round(totalCost / hourlyWage);
+    const daysOfWork = (hoursOfWork / 8).toFixed(1);
+
+    // Micro-expense check (e.g. galleta de S/. 1, taxi de S/. 12)
+    const isMicroExpense =
+      rawAmt > 0 && rawAmt <= (settings.phantomExpenseThreshold || 20);
+    const hasLiquidity = totalLiquidAssets >= rawAmt;
+
+    // Verdict calculation
+    let verdict: "safe" | "caution" | "danger" = "safe";
+    let verdictTitle = "Compra Financieramente Segura 🟢";
+    let verdictDesc =
+      "Tu flujo de caja mensual puede absorber esta cuota cómodamente sin comprometer tu capacidad de ahorro básico.";
+
+    if (isMicroExpense && (hasLiquidity || rawAmt <= 10)) {
+      verdict = "safe";
+      verdictTitle = "Gasto Menor Cotidiano 🟢";
+      verdictDesc = `Es una compra mínima (${formatCurrency(
+        rawAmt,
+        purchaseCurrency,
+      )}) que no compromete tu flujo de caja mensual y está cubierta por tu liquidez disponible.`;
+    } else if (currentSurplus <= 0) {
+      verdict = "danger";
+      verdictTitle = "Tu mes ya registra déficit 🔴";
+      verdictDesc = `Actualmente tus gastos del mes ya superan tus ingresos (déficit de ${formatCurrency(
+        Math.abs(currentSurplus),
+      )}). Esta compra añadirá ${formatCurrency(
+        monthlyPayment,
+        purchaseCurrency,
+      )} más a ese saldo negativo.`;
+    } else if (projectedSurplus < 0) {
+      verdict = "danger";
+      verdictTitle = "Esta compra causa Déficit 🔴";
+      verdictDesc = `Tus ingresos no alcanzan para cubrir tus gastos habituales MÁS esta cuota de ${formatCurrency(
+        monthlyPayment,
+        purchaseCurrency,
+      )}/mes. Quedarías en rojo por ${formatCurrency(
+        Math.abs(projectedSurplus),
+      )}.`;
+    } else if (
+      projectedSavingsRate < 8 ||
+      monthlyPayment > currentSurplus * 0.55
+    ) {
+      verdict = "caution";
+      verdictTitle = "Impacto Elevado / Precaución 🟡";
+      verdictDesc =
+        "La cuota consumirá más de la mitad de tu margen libre mensual. Te dejará muy vulnerable ante cualquier imprevisto de salud, hogar o vehículo.";
+    }
+
+    // 6-month projected comparison
+    const timeline = [];
+    for (let m = 1; m <= 6; m++) {
+      const isStillPaying =
+        purchasePaymentType === "contado" ? m === 1 : m <= n;
+      const monthPayment = isStillPaying ? monthlyPayment : 0;
+      timeline.push({
+        monthIndex: m,
+        monthLabel: `Mes +${m}`,
+        payment: monthPayment,
+        surplusWithout: currentSurplus,
+        surplusWith: currentSurplus - monthPayment,
+      });
+    }
+
+    return {
+      rawAmt,
+      n,
+      monthlyPayment,
+      totalCost,
+      totalInterest,
+      activeIncome,
+      currentSurplus,
+      projectedSurplus,
+      currentSavingsRate,
+      projectedSavingsRate,
+      hoursOfWork,
+      daysOfWork,
+      verdict,
+      verdictTitle,
+      verdictDesc,
+      timeline,
+    };
+  }, [
+    purchaseAmount,
+    purchasePaymentType,
+    purchaseInstallments,
+    purchaseInterestRate,
+    purchaseIncome,
+    detectedIncome,
+    totalExpenses,
+    totalLiquidAssets,
+    settings.phantomExpenseThreshold,
+    formatCurrency,
+    purchaseCurrency,
+  ]);
 
   // Calculate 50/30/20 Rule distribution based on active transactions
   const rule503020 = useMemo(() => {
@@ -73,18 +249,49 @@ export const FinancialAdvisorView: React.FC = () => {
       }
     });
 
-    const income = totalIncome > 0 ? totalIncome : totalExpenses;
-    const needsPercent = income > 0 ? Math.round((needs / income) * 100) : 0;
-    const wantsPercent = income > 0 ? Math.round((wants / income) * 100) : 0;
-    const savingsPercent = Math.max(0, 100 - needsPercent - wantsPercent);
+    const totalSpent = needs + wants;
+    const isDeficit = totalIncome > 0 && totalSpent > totalIncome;
+    const hasNoIncome = totalIncome === 0;
+
+    let needsPercent = 0;
+    let wantsPercent = 0;
+    let savingsPercent = 0;
+    let savingsAmount = 0;
+
+    if (totalSpent === 0 && totalIncome === 0) {
+      needsPercent = 0;
+      wantsPercent = 0;
+      savingsPercent = 0;
+      savingsAmount = 0;
+    } else if (isDeficit || hasNoIncome) {
+      // If expenses exceed income or no income registered, calculate distribution
+      // relative to total spent so percentages add to 100% and don't distort.
+      needsPercent = totalSpent > 0 ? Math.round((needs / totalSpent) * 100) : 0;
+      wantsPercent = totalSpent > 0 ? Math.round((wants / totalSpent) * 100) : 0;
+      if (needsPercent + wantsPercent > 100) {
+        wantsPercent = Math.max(0, 100 - needsPercent);
+      }
+      savingsPercent = 0;
+      savingsAmount = 0;
+    } else {
+      // Normal case: totalIncome >= totalSpent
+      needsPercent = Math.round((needs / totalIncome) * 100);
+      wantsPercent = Math.round((wants / totalIncome) * 100);
+      savingsPercent = Math.max(0, 100 - needsPercent - wantsPercent);
+      savingsAmount = Math.max(0, totalIncome - totalSpent);
+    }
 
     return {
       needsAmount: needs,
       needsPercent,
       wantsAmount: wants,
       wantsPercent,
-      savingsAmount: Math.max(0, income - needs - wants),
+      savingsAmount,
       savingsPercent,
+      isDeficit,
+      hasNoIncome,
+      totalSpent,
+      totalIncome,
     };
   }, [transactions, totalIncome, totalExpenses]);
 
@@ -242,6 +449,13 @@ export const FinancialAdvisorView: React.FC = () => {
               <Lightbulb className="size-3.5" />
               <span>Estrategias Maestras</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="scratchpad"
+              className="gap-1.5 text-xs shrink-0 cursor-pointer font-semibold text-amber-400 data-[state=active]:text-foreground"
+            >
+              <Sparkles className="size-3.5 text-amber-400" />
+              <span>Simulador Arenero (¿Compro esto?)</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -260,6 +474,39 @@ export const FinancialAdvisorView: React.FC = () => {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {/* Deficit Alert Banner */}
+              {rule503020.isDeficit && (
+                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs">
+                  <AlertTriangle className="size-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-amber-300">
+                      Gastos ({formatCurrency(rule503020.totalSpent)}) superan tus ingresos registrados ({formatCurrency(rule503020.totalIncome)})
+                    </p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      Tus gastos en este mes exceden los ingresos registrados en Movimientos.
+                      Para mantener la coherencia financiera y que los porcentajes no sumen cifras distorsionadas (mayores al 100%), 
+                      la distribución se calcula sobre el <strong>total de lo gastado</strong> ({rule503020.needsPercent}% en necesidades y {rule503020.wantsPercent}% en deseos). 
+                      Apenas registres tu sueldo o ingresos completos del mes en Movimientos, la regla se calculará sobre el 100% de tus ingresos.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* No Income Registered Banner */}
+              {rule503020.hasNoIncome && rule503020.totalSpent > 0 && (
+                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-xs">
+                  <Info className="size-4 text-blue-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-blue-300">
+                      Sin ingresos registrados en este mes
+                    </p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      No has registrado ingresos para este periodo todavía. Mostramos cómo se reparten tus necesidades y deseos sobre tu total gastado ({formatCurrency(rule503020.totalSpent)}).
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* 3 Pillars Progress Bars */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Needs */}
@@ -318,7 +565,7 @@ export const FinancialAdvisorView: React.FC = () => {
                 <div className="p-4 rounded-xl border border-border/70 bg-emerald-500/5 border-emerald-500/20 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-emerald-400">
-                      3. Ahorro & Inversión
+                      3. Ahorro & Inversión (Mes)
                     </span>
                     <Badge
                       variant="default"
@@ -338,9 +585,23 @@ export const FinancialAdvisorView: React.FC = () => {
                     className="h-2 bg-emerald-950"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Dinero reservado para tu fondo de emergencia, proyectos e
-                    inversiones futuras.
+                    Ahorro nuevo generado con tus ingresos netos de este mes.
                   </p>
+
+                  {/* Clarification about accumulated savings in wallets */}
+                  {totalSavingsCapital > 0 && (
+                    <div className="pt-2 border-t border-emerald-500/20 space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground">Colchón en Billeteras:</span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {formatCurrency(totalSavingsCapital)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/80 leading-tight">
+                        Tu saldo acumulado en cuentas de reserva (como &quot;Guarda&quot;) está seguro e intacto en Billeteras.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -351,6 +612,15 @@ export const FinancialAdvisorView: React.FC = () => {
                   Diagnóstico y Recomendación Personalizada:
                 </h4>
                 <div className="text-xs text-muted-foreground space-y-1">
+                  {rule503020.isDeficit && (
+                    <p className="text-amber-400 font-medium">
+                      • <strong>Balance en déficit este mes:</strong> Has gastado{" "}
+                      {formatCurrency(rule503020.totalSpent)} vs{" "}
+                      {formatCurrency(rule503020.totalIncome)} de ingresos registrados.
+                      Si aún no has registrado tu sueldo o ingresos completos del mes en Movimientos,
+                      regístralos para reflejar tu ahorro real.
+                    </p>
+                  )}
                   {rule503020.needsPercent > 60 ? (
                     <p>
                       • <strong>Tus necesidades absorben más del 60%</strong> de
@@ -818,6 +1088,368 @@ export const FinancialAdvisorView: React.FC = () => {
                 </p>
               </div>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* Tab 5: Scratchpad (Simulador Arenero) */}
+        <TabsContent value="scratchpad" className="space-y-4">
+          <Card className="border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/30">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      Simulador Arenero: ¿Qué pasa si compro esto?
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Experimenta y proyecta el impacto de una compra antes de comprometer tu dinero real.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] font-semibold px-2 py-0.5 shrink-0 ${
+                    scratchpadAnalysis.verdict === "safe"
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : scratchpadAnalysis.verdict === "caution"
+                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                        : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                  }`}
+                >
+                  {scratchpadAnalysis.verdict === "safe"
+                    ? "Segura 🟢"
+                    : scratchpadAnalysis.verdict === "caution"
+                      ? "Precaución 🟡"
+                      : "Peligro 🔴"}
+                </Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Left: Input Form Card */}
+            <Card className="p-4 sm:p-5 lg:col-span-5 space-y-4">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ShoppingBag className="size-3.5 text-primary" />
+                Parámetros de la Compra
+              </h4>
+
+              {/* Purchase Name */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  ¿Qué estás pensando comprar?
+                </Label>
+                <Input
+                  type="text"
+                  value={purchaseName}
+                  onChange={(e) => setPurchaseName(e.target.value)}
+                  placeholder="ej. iPhone 16 Pro, Laptop M3, Viaje..."
+                  className="h-9 text-xs bg-muted/40"
+                />
+              </div>
+
+              {/* Purchase Amount & Currency */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Precio Total
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    {(["PEN", "USD", "EUR"] as const).map((curr) => (
+                      <button
+                        key={curr}
+                        type="button"
+                        onClick={() => setPurchaseCurrency(curr)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                          purchaseCurrency === curr
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {curr}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-sm font-bold text-muted-foreground select-none">
+                    {purchaseCurrency === "USD"
+                      ? "$"
+                      : purchaseCurrency === "EUR"
+                        ? "€"
+                        : "S/."}
+                  </span>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="1"
+                    value={purchaseAmount}
+                    onChange={(e) => setPurchaseAmount(e.target.value)}
+                    className="pl-12 h-10 text-base font-bold bg-muted/40 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Estimated Monthly Income for simulation */}
+              <div className="space-y-1.5 p-2.5 rounded-xl bg-muted/20 border border-border/70">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Coins className="size-3.5 text-emerald-400" />
+                    Tu Ingreso Mensual Base
+                  </Label>
+                  <span className="text-[10px] text-primary font-medium">
+                    {totalIncome > 0 ? "Mes en curso" : "Base estimada"}
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-xs font-bold text-muted-foreground select-none">
+                    {purchaseCurrency === "USD"
+                      ? "$"
+                      : purchaseCurrency === "EUR"
+                        ? "€"
+                        : "S/."}
+                  </span>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder={String(detectedIncome)}
+                    value={purchaseIncome}
+                    onChange={(e) => setPurchaseIncome(e.target.value)}
+                    className="pl-10 h-8 text-xs font-mono font-semibold bg-background"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Usamos {formatCurrency(scratchpadAnalysis.activeIncome, purchaseCurrency)}/mes para medir si esta compra causa déficit. Puedes ajustarlo a tu sueldo real.
+                </p>
+              </div>
+
+              {/* Payment Type: Contado vs Cuotas */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Modalidad de Pago
+                </Label>
+                <div className="grid grid-cols-2 p-1 bg-muted rounded-xl gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPurchasePaymentType("contado")}
+                    className={`py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      purchasePaymentType === "contado"
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Al Contado (1 Mes)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPurchasePaymentType("cuotas")}
+                    className={`py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      purchasePaymentType === "cuotas"
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    En Cuotas
+                  </button>
+                </div>
+              </div>
+
+              {/* Installments Options */}
+              {purchasePaymentType === "cuotas" && (
+                <div className="space-y-3 p-3 bg-muted/20 border border-border/80 rounded-xl animate-in fade-in-50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">
+                        Número de Cuotas
+                      </Label>
+                      <select
+                        value={purchaseInstallments}
+                        onChange={(e) => setPurchaseInstallments(e.target.value)}
+                        className="w-full h-8 px-2.5 bg-background border border-input rounded-lg text-xs font-medium text-foreground cursor-pointer focus:outline-none"
+                      >
+                        {[2, 3, 4, 6, 9, 12, 18, 24, 36].map((n) => (
+                          <option key={n} value={n}>
+                            {n} cuotas
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">
+                        Interés Anual (TEA %)
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={purchaseInterestRate}
+                        onChange={(e) => setPurchaseInterestRate(e.target.value)}
+                        className="h-8 text-xs bg-background font-mono"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Pon 0% si tu banco ofrece cuotas sin intereses. Si usas tarjeta estándar, la TEA suele rondar 30%-45%.
+                  </p>
+                </div>
+              )}
+            </Card>
+
+            {/* Right: Results, Verdict & Timeline */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Verdict Card */}
+              <Card
+                className={`p-4 sm:p-5 border transition-all ${
+                  scratchpadAnalysis.verdict === "safe"
+                    ? "bg-emerald-500/5 border-emerald-500/20"
+                    : scratchpadAnalysis.verdict === "caution"
+                      ? "bg-amber-500/5 border-amber-500/20"
+                      : "bg-rose-500/5 border-rose-500/20"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      scratchpadAnalysis.verdict === "safe"
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : scratchpadAnalysis.verdict === "caution"
+                          ? "bg-amber-500/15 text-amber-400"
+                          : "bg-rose-500/15 text-rose-400"
+                    }`}
+                  >
+                    {scratchpadAnalysis.verdict === "safe" ? (
+                      <CheckCircle2 className="size-5" />
+                    ) : (
+                      <AlertTriangle className="size-5" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm sm:text-base font-bold text-foreground">
+                      {scratchpadAnalysis.verdictTitle}
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {scratchpadAnalysis.verdictDesc}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 3 Metric Pillars */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Cuota Mensual */}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                    Cuota Mensual
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold font-mono text-foreground">
+                      {formatCurrency(
+                        scratchpadAnalysis.monthlyPayment,
+                        purchaseCurrency,
+                      )}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">/ mes</span>
+                  </div>
+                  {scratchpadAnalysis.totalInterest > 0 && (
+                    <span className="text-[10px] text-rose-400 block font-mono">
+                      +{formatCurrency(scratchpadAnalysis.totalInterest, purchaseCurrency)} interés
+                    </span>
+                  )}
+                </div>
+
+                {/* Tasa de Ahorro */}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                    Tasa de Ahorro
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs line-through text-muted-foreground">
+                      {scratchpadAnalysis.currentSavingsRate}%
+                    </span>
+                    <span className="text-lg font-bold font-mono text-primary">
+                      {scratchpadAnalysis.projectedSavingsRate}%
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Caída de {Math.max(0, scratchpadAnalysis.currentSavingsRate - scratchpadAnalysis.projectedSavingsRate)}% mensual
+                  </span>
+                </div>
+
+                {/* Horas de Trabajo */}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block flex items-center gap-1">
+                    <Clock className="size-3 text-amber-400" />
+                    Horas de Trabajo
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold font-mono text-amber-400">
+                      {scratchpadAnalysis.hoursOfWork} hrs
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground block">
+                    {scratchpadAnalysis.daysOfWork} días enteros de tu sueldo
+                  </span>
+                </div>
+              </div>
+
+              {/* 6-Month Projected Cash Flow Timeline */}
+              <Card className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-foreground">
+                    Proyección de Flujo de Caja (Próximos 6 Meses)
+                  </h4>
+                  <span className="text-[10px] text-muted-foreground">
+                    Saldo libre al final de cada mes
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {scratchpadAnalysis.timeline.map((item) => {
+                    const isDeficit = item.surplusWith < 0;
+                    return (
+                      <div
+                        key={item.monthIndex}
+                        className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-border/50 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground w-16">
+                            {item.monthLabel}
+                          </span>
+                          {item.payment > 0 ? (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-amber-400 border-amber-500/20">
+                              Cuota: {formatCurrency(item.payment, purchaseCurrency)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground">
+                              Sin cuota
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                            Sin compra: {formatCurrency(item.surplusWithout)}
+                          </span>
+                          <span
+                            className={`font-bold ${
+                              isDeficit ? "text-rose-400" : "text-emerald-400"
+                            }`}
+                          >
+                            Con compra: {formatCurrency(item.surplusWith)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

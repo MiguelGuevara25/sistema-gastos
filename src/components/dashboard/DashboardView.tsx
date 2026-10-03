@@ -6,6 +6,7 @@ import { MetricCard } from "./MetricCard";
 import { ExpenseFlowChart } from "./ExpenseFlowChart";
 import { CategoryBreakdown } from "./CategoryBreakdown";
 import { RecentTransactions } from "./RecentTransactions";
+import { SafeToSpendWidget } from "./SafeToSpendWidget";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -139,6 +140,9 @@ export const DashboardView: React.FC = () => {
         />
       </div>
 
+      {/* Safe-to-Spend & Daily Pacing Widget */}
+      <SafeToSpendWidget />
+
       {/* Quick Glance: Wallets, Recurring, Goals & Debts Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Wallets & Accounts Summary */}
@@ -196,7 +200,7 @@ export const DashboardView: React.FC = () => {
                       <Icon className="size-3" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-17.5">
+                      <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-[75px]">
                         {acc.name}
                       </p>
                       <p className="text-[9px] text-muted-foreground font-mono">
@@ -301,7 +305,7 @@ export const DashboardView: React.FC = () => {
             {goals[0] ? (
               <>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-foreground truncate max-w-37.5">
+                  <span className="font-semibold text-foreground truncate max-w-[150px]">
                     {goals[0].name}
                   </span>
                   <span className="text-muted-foreground font-mono">

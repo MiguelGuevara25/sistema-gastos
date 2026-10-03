@@ -182,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: "budgets", label: "Presupuestos", icon: PieChart },
       { id: "goals", label: "Metas de Ahorro", icon: Target },
       { id: "analytics", label: "Estadísticas & Fugas", icon: BarChart3 },
-      { id: "advisor", label: "Simulador & Tips", icon: Sparkles },
+      { id: "advisor", label: "Simulador & Consejos", icon: Sparkles },
       { id: "settings", label: "Configuración", icon: Settings },
     ];
 

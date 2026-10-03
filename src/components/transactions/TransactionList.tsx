@@ -7,9 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Trash2, Edit2, FileSpreadsheet } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Edit2,
+  FileSpreadsheet,
+  Users,
+} from "lucide-react";
 import { PAYMENT_METHOD_LABELS } from "../../data/categories";
-import { TransactionType } from "../../types/finance";
+import { Transaction, TransactionType } from "../../types/finance";
+import { SharedExpenseModal } from "./SharedExpenseModal";
 import {
   compareAsc,
   compareDesc,
@@ -39,11 +47,19 @@ export const TransactionList: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<
     "newest" | "oldest" | "highest" | "lowest"
   >("newest");
+  const [onlyShared, setOnlyShared] = useState(false);
+  const [selectedSharedTx, setSelectedSharedTx] = useState<Transaction | null>(
+    null,
+  );
+  const [isSharedModalOpen, setIsSharedModalOpen] = useState(false);
 
   // Filtered and Sorted
   const filteredTransactions = useMemo(() => {
     return transactions
       .filter((tx) => {
+        if (onlyShared && !tx.sharedDetails) {
+          return false;
+        }
         if (
           searchTerm &&
           !tx.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -67,10 +83,20 @@ export const TransactionList: React.FC = () => {
         return true;
       })
       .sort((a, b) => {
-        if (sortOrder === "newest")
-          return compareDesc(parseISO(a.date), parseISO(b.date));
-        if (sortOrder === "oldest")
-          return compareAsc(parseISO(a.date), parseISO(b.date));
+        if (sortOrder === "newest") {
+          const dateComp = (b.date || "").localeCompare(a.date || "");
+          if (dateComp !== 0) return dateComp;
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        }
+        if (sortOrder === "oldest") {
+          const dateComp = (a.date || "").localeCompare(b.date || "");
+          if (dateComp !== 0) return dateComp;
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeA - timeB;
+        }
         if (sortOrder === "highest") return b.amount - a.amount;
         if (sortOrder === "lowest") return a.amount - b.amount;
         return 0;
@@ -82,6 +108,7 @@ export const TransactionList: React.FC = () => {
     categoryFilter,
     methodFilter,
     sortOrder,
+    onlyShared,
   ]);
 
   const formatDateLabel = (dateStr: string) => {
@@ -189,6 +216,17 @@ export const TransactionList: React.FC = () => {
                   }`}
                 >
                   Ingresos
+                </button>
+                <button
+                  onClick={() => setOnlyShared(!onlyShared)}
+                  className={`px-3 py-1 rounded-md text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                    onlyShared
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Users className="size-3.5" />
+                  <span>Compartidos</span>
                 </button>
               </div>
             </div>
@@ -342,8 +380,8 @@ export const TransactionList: React.FC = () => {
                     </div>
 
                     <div className="min-w-0 space-y-0.5 sm:space-y-1">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-32.5 xs:max-w-[180px] sm:max-w-none">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-semibold text-foreground truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
                           {tx.description}
                         </span>
                         <Badge
@@ -356,10 +394,38 @@ export const TransactionList: React.FC = () => {
                         >
                           {isExpense ? "Gasto" : "Ingreso"}
                         </Badge>
+                        {tx.sharedDetails && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSharedTx(tx);
+                              setIsSharedModalOpen(true);
+                            }}
+                            className={`inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                              tx.sharedDetails.isFullySettled
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                            }`}
+                            title="Gestionar cobros a terceros"
+                          >
+                            <Users className="size-2.5 sm:size-3" />
+                            <span>
+                              {tx.sharedDetails.isFullySettled
+                                ? "Reembolsado"
+                                : `Te deben ${formatCurrency(
+                                    tx.sharedDetails.participants
+                                      .filter((p) => !p.settled)
+                                      .reduce((s, p) => s + p.amount, 0),
+                                    tx.currency,
+                                  )}`}
+                            </span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 text-[10px] sm:text-xs text-muted-foreground">
-                        <span className="truncate max-w-22.5 sm:max-w-none">
+                        <span className="truncate max-w-[90px] sm:max-w-none">
                           {cat.name}
                         </span>
                         <span>•</span>
@@ -423,6 +489,16 @@ export const TransactionList: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Shared Expense Management Modal */}
+      <SharedExpenseModal
+        transaction={selectedSharedTx}
+        isOpen={isSharedModalOpen}
+        onClose={() => {
+          setIsSharedModalOpen(false);
+          setSelectedSharedTx(null);
+        }}
+      />
     </div>
   );
 };

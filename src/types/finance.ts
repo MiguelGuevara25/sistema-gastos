@@ -82,6 +82,23 @@ export interface InstallmentDetails {
   parentId?: string; // ID de la transacción origen o agrupación
 }
 
+export interface SharedExpenseParticipant {
+  id: string;
+  name: string; // ej. "Carlos", "Ana", "Trabajo"
+  amount: number; // Monto que debe esta persona
+  settled: boolean; // true si ya devolvió el dinero
+  settledDate?: string;
+  settledAccountId?: string; // Billetera donde se recibió el reembolso
+}
+
+export interface SharedExpenseDetails {
+  totalPaid: number; // Monto total pagado de tu cuenta (ej. 200)
+  myShare: number; // Lo que realmente te correspondía gastar a ti (ej. 50)
+  owedAmount: number; // Lo que te deben terceros (ej. 150)
+  participants: SharedExpenseParticipant[];
+  isFullySettled: boolean;
+}
+
 export interface Transaction {
   id: string;
   description: string;
@@ -94,6 +111,7 @@ export interface Transaction {
   currency?: string; // "PEN" | "USD" | "EUR"
   exchangeRate?: number; // Tipo de cambio respecto a divisa base
   installments?: InstallmentDetails; // Detalles de compra en cuotas
+  sharedDetails?: SharedExpenseDetails; // Detalles de cuenta compartida / reembolso
   tags?: string[]; // Etiquetas tipo #vacaciones, #trabajo
   notes?: string;
   createdAt: string;
@@ -139,6 +157,10 @@ export interface UserSettings {
   userName: string;
   exchangeRates: Record<string, number>; // e.g. { "USD": 3.75, "EUR": 4.05, "PEN": 1.0 }
   phantomExpenseThreshold: number; // Monto límite para considerar gasto hormiga (ej. 20)
+  // Income settings for cashflow & advisor
+  incomeFrequency?: "monthly" | "biweekly"; // "monthly" (mensual) o "biweekly" (quincenal)
+  incomePayDay?: number; // Día del mes en que cobras (ej. 30 para fin de mes, 15, 1, etc.)
+  monthlyIncome?: number; // Sueldo o ingreso mensual recurrente estimado (ej. 1300)
 }
 
 export type ActiveTab =

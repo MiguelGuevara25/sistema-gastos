@@ -24,6 +24,8 @@ import {
   RecurringExpense,
   DebtLoan,
   SavingsChallenge,
+  SharedExpenseDetails,
+  SharedExpenseParticipant,
 } from "../types/finance";
 import { DEFAULT_CATEGORIES } from "../data/categories";
 import {
@@ -110,6 +112,20 @@ export interface PhantomExpenseSummary {
     categoryName: string;
   }[];
 }
+
+export const compareTransactionsNewestFirst = (
+  a: Transaction,
+  b: Transaction,
+): number => {
+  const dateA = a.date || "";
+  const dateB = b.date || "";
+  if (dateA !== dateB) {
+    return dateB.localeCompare(dateA);
+  }
+  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  return timeB - timeA;
+};
 
 interface FinanceContextType {
   // Transactions
@@ -258,6 +274,14 @@ interface FinanceContextType {
   exportToJSON: () => void;
   importFromJSON: (jsonData: string) => boolean;
 
+  // Shared Expenses & Reimbursements
+  settleSharedExpenseParticipant: (
+    transactionId: string,
+    participantId: string,
+    targetAccountId?: string,
+  ) => void;
+  totalSharedOwedPending: number;
+
   // Computed metrics (for selectedMonth)
   totalIncome: number;
   totalExpenses: number;
@@ -284,6 +308,10 @@ interface FinanceContextType {
   isDemoMode: boolean;
   enableDemoMode: () => void;
   exitDemoMode: () => void;
+
+  // Local-First Mode
+  isLocalMode: boolean;
+  enableLocalMode: () => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -297,6 +325,7 @@ const STORAGE_KEYS = {
   RECURRING: "finanza_recurring_v3",
   DEBTS: "finanza_debts_v3",
   CHALLENGES: "finanza_challenges_v3",
+  MODE: "finanza_app_mode",
 };
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -331,9 +360,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isLocalMode, setIsLocalMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const savedMode = localStorage.getItem("finanza_app_mode");
+      if (savedMode === "local") return true;
+      if (savedMode === "demo") return false;
+    }
+    // Default to true so user is never locked out from their local data
+    return true;
+  });
+
+  const enableLocalMode = useCallback(() => {
+    setIsLocalMode(true);
+    setIsDemoMode(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("finanza_app_mode", "local");
+    }
+  }, []);
 
   const enableDemoMode = useCallback(() => {
     setIsDemoMode(true);
+    setIsLocalMode(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("finanza_app_mode", "demo");
+    }
     setAllTransactions(DEMO_TRANSACTIONS);
     setAccounts(DEMO_ACCOUNTS);
     setGoals(DEMO_GOALS);
@@ -345,8 +395,27 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const exitDemoMode = useCallback(() => {
     setIsDemoMode(false);
-    resetToDefaultData();
-    setIsAuthModalOpen(true);
+    setIsLocalMode(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("finanza_app_mode", "local");
+    }
+    // Restore saved local data from localStorage without wiping anything!
+    try {
+      const storedTxs = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS) || localStorage.getItem("finanza_transactions_v1");
+      if (storedTxs) setAllTransactions(JSON.parse(storedTxs));
+      const storedAccs = localStorage.getItem(STORAGE_KEYS.ACCOUNTS) || localStorage.getItem("finanza_accounts_v1");
+      if (storedAccs) setAccounts(JSON.parse(storedAccs));
+      const storedSets = localStorage.getItem(STORAGE_KEYS.SETTINGS) || localStorage.getItem("finanza_settings_v1");
+      if (storedSets) setSettings(JSON.parse(storedSets));
+      const storedGls = localStorage.getItem(STORAGE_KEYS.GOALS) || localStorage.getItem("finanza_goals_v1");
+      if (storedGls) setGoals(JSON.parse(storedGls));
+      const storedRec = localStorage.getItem(STORAGE_KEYS.RECURRING) || localStorage.getItem("finanza_recurring_v1");
+      if (storedRec) setRecurringExpenses(JSON.parse(storedRec));
+      const storedDbts = localStorage.getItem(STORAGE_KEYS.DEBTS) || localStorage.getItem("finanza_debts_v1");
+      if (storedDbts) setDebtsLoans(JSON.parse(storedDbts));
+    } catch (e) {
+      console.error("Error restoring local data upon exiting demo mode:", e);
+    }
   }, []);
 
   // Sync entire local data to cloud
@@ -416,9 +485,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           setAllTransactions(data.transactions);
           localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(data.transactions));
         } else {
-          const localTxs = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+          const localTxs = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS) || localStorage.getItem("finanza_transactions_v1");
           const parsedTxs: Transaction[] = localTxs ? JSON.parse(localTxs) : [];
           if (parsedTxs.length > 0) {
+            setAllTransactions(parsedTxs);
             for (const tx of parsedTxs) {
               await supabaseService.insertTransaction(userId, tx).catch(console.error);
             }
@@ -520,22 +590,52 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     await supabase.auth.signOut();
     loadedUserRef.current = null;
     setUser(null);
-    resetToDefaultData();
+    setIsLocalMode(true);
   };
 
   // Load from localStorage on client mount with migration checks
   useEffect(() => {
     try {
-      const storedTransactions = localStorage.getItem(
+      const getStoredWithFallback = (keyV3: string, keyV1: string): string | null => {
+        const val3 = localStorage.getItem(keyV3);
+        if (val3 && val3 !== "[]" && val3 !== "{}") return val3;
+        const val1 = localStorage.getItem(keyV1);
+        if (val1 && val1 !== "[]" && val1 !== "{}") {
+          localStorage.setItem(keyV3, val1);
+          return val1;
+        }
+        return val3 || null;
+      };
+
+      const storedTransactions = getStoredWithFallback(
         STORAGE_KEYS.TRANSACTIONS,
+        "finanza_transactions_v1",
       );
-      const storedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      const storedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      const storedAccounts = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
-      const storedGoals = localStorage.getItem(STORAGE_KEYS.GOALS);
+      const storedSettings = getStoredWithFallback(
+        STORAGE_KEYS.SETTINGS,
+        "finanza_settings_v1",
+      );
+      const storedCategories = getStoredWithFallback(
+        STORAGE_KEYS.CATEGORIES,
+        "finanza_categories_v1",
+      );
+      const storedAccounts = getStoredWithFallback(
+        STORAGE_KEYS.ACCOUNTS,
+        "finanza_accounts_v1",
+      );
+      const storedGoals = getStoredWithFallback(
+        STORAGE_KEYS.GOALS,
+        "finanza_goals_v1",
+      );
       const storedChallenges = localStorage.getItem(STORAGE_KEYS.CHALLENGES);
-      const storedRecurring = localStorage.getItem(STORAGE_KEYS.RECURRING);
-      const storedDebts = localStorage.getItem(STORAGE_KEYS.DEBTS);
+      const storedRecurring = getStoredWithFallback(
+        STORAGE_KEYS.RECURRING,
+        "finanza_recurring_v1",
+      );
+      const storedDebts = getStoredWithFallback(
+        STORAGE_KEYS.DEBTS,
+        "finanza_debts_v1",
+      );
 
       // 1. Accounts: migrate any legacy IDs to UUID
       const accountIdMap = new Map<string, string>();
@@ -923,12 +1023,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     setSelectedMonth(`${nextY}-${String(nextM).padStart(2, "0")}`);
   };
 
-  // Filter transactions by selectedMonth
+  // Filter transactions by selectedMonth and sort newest first (Date DESC, then CreatedAt DESC)
   const transactions = useMemo(() => {
-    if (selectedMonth === "all") return allTransactions;
-    return allTransactions.filter(
-      (tx) => tx.date && tx.date.startsWith(selectedMonth),
-    );
+    const list =
+      selectedMonth === "all"
+        ? allTransactions
+        : allTransactions.filter(
+            (tx) => tx.date && tx.date.startsWith(selectedMonth),
+          );
+    return [...list].sort(compareTransactionsNewestFirst);
   }, [allTransactions, selectedMonth]);
 
   // Month comparison
@@ -1008,7 +1111,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       createdAt: new Date().toISOString(),
     };
 
-    saveTransactions([newTx, ...allTransactions]);
+    const updated = [newTx, ...allTransactions].sort(compareTransactionsNewestFirst);
+    saveTransactions(updated);
 
     // If new transaction date is in another month, auto-switch selectedMonth so the user sees it immediately
     if (newTx.date && newTx.date.length >= 7) {
@@ -1052,9 +1156,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateTransaction = (id: string, data: Partial<Transaction>) => {
     const oldTx = allTransactions.find((tx) => tx.id === id);
-    const updatedTransactions = allTransactions.map((tx) =>
-      tx.id === id ? { ...tx, ...data } : tx,
-    );
+    const updatedTransactions = allTransactions
+      .map((tx) => (tx.id === id ? { ...tx, ...data } : tx))
+      .sort(compareTransactionsNewestFirst);
     saveTransactions(updatedTransactions);
 
     if (user) {
@@ -2022,15 +2126,35 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       let dayExpense = 0;
       const events: string[] = [];
 
-      // 1. Estimated Recurring Income (Salary on 15th and 30th/last day)
-      if (dayOfMonth === 15 || dayOfMonth === 30) {
-        // Look for recurring salary in past transactions
-        const salaryTx = allTransactions.find(
-          (t) => t.type === "income" && t.categoryId === "cat-salario",
-        );
-        const estSalary = salaryTx ? salaryTx.amount / 2 : 1750;
-        dayIncome += estSalary;
-        events.push(`Ingreso estimado quincena: +${formatCurrency(estSalary)}`);
+      // 1. Estimated Recurring Income (Salary based on user settings or detected transactions)
+      const isBiweekly = settings.incomeFrequency === "biweekly";
+      const payDay = settings.incomePayDay ?? 30;
+      const salaryTx = allTransactions.find(
+        (t) => t.type === "income" && (t.categoryId === "cat-salario" || t.categoryId.toLowerCase().includes("salario")),
+      );
+      const effectiveIncome =
+        settings.monthlyIncome !== undefined && settings.monthlyIncome > 0
+          ? settings.monthlyIncome
+          : salaryTx
+            ? salaryTx.amount
+            : 1300;
+
+      if (effectiveIncome > 0) {
+        if (isBiweekly) {
+          if (dayOfMonth === 15 || dayOfMonth === 30) {
+            const estSalary = effectiveIncome / 2;
+            dayIncome += estSalary;
+            events.push(`Ingreso estimado quincena: +${formatCurrency(estSalary)}`);
+          }
+        } else {
+          // Monthly payment: adjust for shorter months (e.g. Feb 28, April 30)
+          const daysInMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).getDate();
+          const effectivePayDay = Math.min(payDay, daysInMonth);
+          if (dayOfMonth === effectivePayDay) {
+            dayIncome += effectiveIncome;
+            events.push(`Ingreso estimado mensual (Sueldo): +${formatCurrency(effectiveIncome)}`);
+          }
+        }
       }
 
       // 2. Scheduled Recurring Expenses
@@ -2348,6 +2472,81 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const totalSharedOwedPending = useMemo(() => {
+    return allTransactions
+      .filter((t) => t.type === "expense" && t.sharedDetails)
+      .reduce((sum, t) => {
+        const pendingForTx = t.sharedDetails!.participants
+          .filter((p) => !p.settled)
+          .reduce((pSum, p) => pSum + p.amount, 0);
+        return (
+          sum +
+          convertAmount(
+            pendingForTx,
+            t.currency || settings.currencyCode,
+            settings.currencyCode,
+          )
+        );
+      }, 0);
+  }, [allTransactions, convertAmount, settings.currencyCode]);
+
+  const settleSharedExpenseParticipant = (
+    transactionId: string,
+    participantId: string,
+    targetAccountId?: string,
+  ) => {
+    const tx = allTransactions.find((t) => t.id === transactionId);
+    if (!tx || !tx.sharedDetails) return;
+
+    const participant = tx.sharedDetails.participants.find(
+      (p) => p.id === participantId,
+    );
+    if (!participant || participant.settled) return;
+
+    const updatedParticipants = tx.sharedDetails.participants.map((p) =>
+      p.id === participantId
+        ? {
+            ...p,
+            settled: true,
+            settledDate: format(new Date(), "yyyy-MM-dd"),
+            settledAccountId: targetAccountId,
+          }
+        : p,
+    );
+
+    const allSettled = updatedParticipants.every((p) => p.settled);
+    const updatedSharedDetails: SharedExpenseDetails = {
+      ...tx.sharedDetails,
+      participants: updatedParticipants,
+      isFullySettled: allSettled,
+    };
+
+    // If targetAccountId is provided, deposit the reimbursement into that account
+    if (targetAccountId) {
+      const updatedAccounts = accounts.map((acc) => {
+        if (acc.id === targetAccountId) {
+          return {
+            ...acc,
+            balance: Number((acc.balance + participant.amount).toFixed(2)),
+          };
+        }
+        return acc;
+      });
+      saveAccounts(updatedAccounts);
+      if (user) {
+        const updatedAcc = updatedAccounts.find((a) => a.id === targetAccountId);
+        if (updatedAcc) {
+          supabaseService.upsertAccount(user.id, updatedAcc).catch(console.error);
+        }
+      }
+    }
+
+    // Update transaction
+    updateTransaction(transactionId, {
+      sharedDetails: updatedSharedDetails,
+    });
+  };
+
   const exportToCSV = () => {
     if (allTransactions.length === 0) return;
     const headers = [
@@ -2504,8 +2703,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     let expenses = 0;
 
     transactions.forEach((tx) => {
+      const rawAmt =
+        tx.type === "expense" && tx.sharedDetails
+          ? tx.sharedDetails.myShare
+          : tx.amount;
       const amtInBase = convertAmount(
-        tx.amount,
+        rawAmt,
         tx.currency || settings.currencyCode,
         settings.currencyCode,
       );
@@ -2533,27 +2736,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       savingsRate: rate,
       budgetUsagePercent: usage,
     };
-  }, [transactions, settings.monthlyBudget, settings.currencyCode]);
+  }, [transactions, settings.monthlyBudget, settings.currencyCode, convertAmount]);
 
   // Category breakdown for expenses
   const categoryBreakdown = useMemo(() => {
     const expenseTx = transactions.filter((t) => t.type === "expense");
     const totalExp = expenseTx.reduce(
-      (acc, curr) =>
-        acc +
-        convertAmount(
-          curr.amount,
-          curr.currency || settings.currencyCode,
-          settings.currencyCode,
-        ),
+      (acc, curr) => {
+        const effAmt = curr.sharedDetails ? curr.sharedDetails.myShare : curr.amount;
+        return (
+          acc +
+          convertAmount(
+            effAmt,
+            curr.currency || settings.currencyCode,
+            settings.currencyCode,
+          )
+        );
+      },
       0,
     );
     const map = new Map<string, { amount: number; count: number }>();
 
     expenseTx.forEach((tx) => {
       const current = map.get(tx.categoryId) || { amount: 0, count: 0 };
+      const effAmt = tx.sharedDetails ? tx.sharedDetails.myShare : tx.amount;
       const amtInBase = convertAmount(
-        tx.amount,
+        effAmt,
         tx.currency || settings.currencyCode,
         settings.currencyCode,
       );
@@ -2707,6 +2915,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         exportToCSV,
         exportToJSON,
         importFromJSON,
+        totalSharedOwedPending,
+        settleSharedExpenseParticipant,
         totalIncome,
         totalExpenses,
         netBalance,
@@ -2723,6 +2933,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         isDemoMode,
         enableDemoMode,
         exitDemoMode,
+        isLocalMode,
+        enableLocalMode,
       }}
     >
       {children}

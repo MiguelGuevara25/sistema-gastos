@@ -24,11 +24,39 @@ import {
   Sparkles,
   Wallet,
   Activity,
+  Coins,
+  Settings2,
+  Check,
+  Info,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export const CashFlowProjectionView: React.FC = () => {
-  const { getCashFlowProjection, formatCurrency } = useFinance();
+  const { getCashFlowProjection, formatCurrency, settings, updateSettings } = useFinance();
   const [horizonDays, setHorizonDays] = useState<30 | 60 | 90>(60);
+
+  // Income configuration inline state
+  const [isEditingIncome, setIsEditingIncome] = useState(false);
+  const [tempMonthlyIncome, setTempMonthlyIncome] = useState(
+    String(settings.monthlyIncome ?? 1300),
+  );
+  const [tempFrequency, setTempFrequency] = useState<"monthly" | "biweekly">(
+    settings.incomeFrequency ?? "monthly",
+  );
+  const [tempPayDay, setTempPayDay] = useState(
+    String(settings.incomePayDay ?? 30),
+  );
+
+  const handleSaveIncomeSettings = () => {
+    const parsedIncome = parseFloat(tempMonthlyIncome);
+    const parsedDay = parseInt(tempPayDay, 10);
+    updateSettings({
+      monthlyIncome: isNaN(parsedIncome) || parsedIncome < 0 ? 1300 : parsedIncome,
+      incomeFrequency: tempFrequency,
+      incomePayDay: isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31 ? 30 : parsedDay,
+    });
+    setIsEditingIncome(false);
+  };
 
   const projection = getCashFlowProjection(horizonDays);
   const {
@@ -95,6 +123,115 @@ export const CashFlowProjectionView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Educational Banner: What is Cash Flow */}
+      <Card className="p-3.5 sm:p-4 bg-muted/20 border-border/70">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <Info className="size-4" />
+          </div>
+          <div className="text-xs space-y-1">
+            <h4 className="font-semibold text-foreground">
+              ¿Qué es el Flujo de Caja y cómo funciona?
+            </h4>
+            <p className="text-muted-foreground leading-relaxed">
+              Es la simulación diaria de cómo evolucionará el saldo disponible en tus cuentas. 
+              Suma tu <strong>sueldo ({formatCurrency(settings.monthlyIncome ?? 1300)})</strong> en la fecha de pago que te corresponde y resta los vencimientos de 
+              tus <strong>Gastos Fijos</strong> (alquiler, servicios, suscripciones), pagos de <strong>Tarjetas de Crédito</strong> y <strong>Préstamos</strong>. 
+              Te permite anticipar con días o meses de antelación si llegarás holgado a fin de mes o si habrá días de baja liquidez.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Recurring Income Settings Card */}
+      <Card className="border-border/70 p-3.5 sm:p-4 bg-card/60">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <Coins className="size-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                Configuración de tu Sueldo / Ingreso Base Proyectado
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Cobras: <strong className="text-emerald-400 font-mono">{formatCurrency(settings.monthlyIncome ?? 1300)}</strong> 
+                {" · "}Modalidad: <strong className="text-foreground">{(settings.incomeFrequency ?? "monthly") === "monthly" ? "Mensual" : "Quincenal"}</strong>
+                {" · "}Día de cobro: <strong className="text-foreground">Día {settings.incomePayDay ?? 30}</strong>
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditingIncome(!isEditingIncome)}
+            className="text-xs gap-1.5 self-start md:self-auto cursor-pointer"
+          >
+            <Settings2 className="size-3.5" />
+            {isEditingIncome ? "Cerrar Ajustes" : "Personalizar Sueldo"}
+          </Button>
+        </div>
+
+        {isEditingIncome && (
+          <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Monto que recibes ({settings.currency})
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={tempMonthlyIncome}
+                onChange={(e) => setTempMonthlyIncome(e.target.value)}
+                placeholder="1300"
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Frecuencia de Cobro
+              </label>
+              <select
+                value={tempFrequency}
+                onChange={(e) => setTempFrequency(e.target.value as "monthly" | "biweekly")}
+                className="h-8 text-xs w-full bg-background border border-input rounded-md px-2.5 text-foreground cursor-pointer"
+              >
+                <option value="monthly">Mensual (1 pago al mes)</option>
+                <option value="biweekly">Quincenal (Día 15 y 30)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Día del mes que te pagan
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="1"
+                  max="31"
+                  disabled={tempFrequency === "biweekly"}
+                  value={tempPayDay}
+                  onChange={(e) => setTempPayDay(e.target.value)}
+                  placeholder="30"
+                  className="h-8 text-xs"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSaveIncomeSettings}
+                  className="h-8 px-3 text-xs gap-1 shrink-0 cursor-pointer"
+                >
+                  <Check className="size-3.5" />
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Liquidity Alert Banner if applicable */}
       {isAlert && (

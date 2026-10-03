@@ -3,7 +3,13 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useFinance } from "../../context/FinanceContext";
-import { TransactionType, PaymentMethod } from "../../types/finance";
+import {
+  TransactionType,
+  PaymentMethod,
+  SharedExpenseDetails,
+  SharedExpenseParticipant,
+} from "../../types/finance";
+import { generateUUID } from "../../lib/utils";
 import { CategoryIcon } from "../ui/CategoryIcon";
 import {
   Dialog,
@@ -29,6 +35,9 @@ import {
   Layers,
   Sparkles,
   ShieldAlert,
+  Users,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { PAYMENT_METHOD_LABELS } from "../../data/categories";
 import { format } from "date-fns";
@@ -46,6 +55,8 @@ interface TransactionFormData {
   isInstallment: boolean;
   totalInstallments: number | string;
   tagsString: string;
+  isShared: boolean;
+  myShare: number | string;
 }
 
 export const TransactionModal: React.FC = () => {
@@ -81,9 +92,17 @@ export const TransactionModal: React.FC = () => {
       isInstallment: false,
       totalInstallments: 3,
       tagsString: "",
+      isShared: false,
+      myShare: "",
     }),
     [defaultExpCat, accounts, settings.currencyCode],
   );
+
+  const [participants, setParticipants] = useState<SharedExpenseParticipant[]>(
+    [],
+  );
+  const [newPartName, setNewPartName] = useState("");
+  const [newPartAmount, setNewPartAmount] = useState("");
 
   const {
     register,
@@ -111,6 +130,8 @@ export const TransactionModal: React.FC = () => {
           totalInstallments:
             editingTransaction.installments?.total || 3,
           tagsString: editingTransaction.tags?.join(", ") || "",
+          isShared: Boolean(editingTransaction.sharedDetails),
+          myShare: editingTransaction.sharedDetails?.myShare || "",
         }
       : defaultValues,
   });
@@ -123,6 +144,18 @@ export const TransactionModal: React.FC = () => {
   const currentTotalInstallments = watch("totalInstallments");
   const currentCurrency = watch("currency");
   const currentTags = watch("tagsString");
+  const isShared = watch("isShared");
+  const myShare = watch("myShare");
+
+  useEffect(() => {
+    if (editingTransaction?.sharedDetails) {
+      setParticipants(editingTransaction.sharedDetails.participants || []);
+    } else {
+      setParticipants([]);
+      setNewPartName("");
+      setNewPartAmount("");
+    }
+  }, [editingTransaction]);
 
   // Keep currency in sync when user switches account
   useEffect(() => {
@@ -138,7 +171,7 @@ export const TransactionModal: React.FC = () => {
     setValue("type", newType);
     const available = categories.filter((c) => c.type === newType);
     if (!available.some((c) => c.id === currentCategoryId)) {
-      setValue("categoryId", available[0]?.id || "");
+      setValue("categoryId", available[0]?.id || "", { shouldValidate: true });
     }
   };
 
@@ -162,6 +195,44 @@ export const TransactionModal: React.FC = () => {
       updated = [...existing, tag];
     }
     setValue("tagsString", updated.join(", "));
+  };
+
+  const numParsedAmount = parseFloat(String(currentAmount)) || 0;
+
+  const handleSplitEvenly = (partsCount: number) => {
+    if (numParsedAmount <= 0) return;
+    const splitPerPerson = Number((numParsedAmount / partsCount).toFixed(2));
+    setValue("myShare", splitPerPerson);
+    const newParts: SharedExpenseParticipant[] = [];
+    for (let i = 1; i < partsCount; i++) {
+      newParts.push({
+        id: generateUUID(),
+        name: `Persona ${i}`,
+        amount: splitPerPerson,
+        settled: false,
+      });
+    }
+    setParticipants(newParts);
+  };
+
+  const handleAddParticipant = () => {
+    if (!newPartName.trim()) return;
+    const amt = parseFloat(newPartAmount) || 0;
+    setParticipants((prev) => [
+      ...prev,
+      {
+        id: generateUUID(),
+        name: newPartName.trim(),
+        amount: amt,
+        settled: false,
+      },
+    ]);
+    setNewPartName("");
+    setNewPartAmount("");
+  };
+
+  const handleRemoveParticipant = (id: string) => {
+    setParticipants((prev) => prev.filter((p) => p.id !== id));
   };
 
   const onSubmit = (data: TransactionFormData) => {
@@ -188,6 +259,31 @@ export const TransactionModal: React.FC = () => {
           }
         : undefined;
 
+    let sharedDetails: SharedExpenseDetails | undefined = undefined;
+    if (data.type === "expense" && data.isShared) {
+      const myShareNum = Number(data.myShare) || 0;
+      const owedTotal = Math.max(0, Number((numAmount - myShareNum).toFixed(2)));
+      const parts =
+        participants.length > 0
+          ? participants
+          : [
+              {
+                id: generateUUID(),
+                name: "Amigos / Terceros",
+                amount: owedTotal,
+                settled: false,
+              },
+            ];
+
+      sharedDetails = {
+        totalPaid: numAmount,
+        myShare: myShareNum,
+        owedAmount: owedTotal,
+        participants: parts,
+        isFullySettled: parts.every((p) => p.settled),
+      };
+    }
+
     const finalCategoryId =
       data.categoryId ||
       defaultExpCat?.id ||
@@ -207,6 +303,7 @@ export const TransactionModal: React.FC = () => {
         notes: data.notes?.trim() || undefined,
         tags: parsedTags,
         installments: installmentDetails,
+        sharedDetails,
       });
     } else {
       addTransaction({
@@ -221,6 +318,7 @@ export const TransactionModal: React.FC = () => {
         notes: data.notes?.trim() || undefined,
         tags: parsedTags,
         installments: installmentDetails,
+        sharedDetails,
       });
     }
 
@@ -228,7 +326,6 @@ export const TransactionModal: React.FC = () => {
   };
 
   const filteredCategories = categories.filter((c) => c.type === currentType);
-  const numParsedAmount = parseFloat(String(currentAmount)) || 0;
   const isLikelyPhantom =
     currentType === "expense" &&
     numParsedAmount > 0 &&
@@ -239,7 +336,7 @@ export const TransactionModal: React.FC = () => {
       open={isAddModalOpen}
       onOpenChange={(open) => !open && handleClose()}
     >
-      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 gap-4 sm:gap-5 rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[88dvh] overflow-y-auto p-4 sm:p-6 gap-4 sm:gap-5 rounded-2xl overscroll-contain">
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg font-bold">
             {editingTransaction ? "Editar Movimiento" : "Nuevo Movimiento"}
@@ -312,10 +409,9 @@ export const TransactionModal: React.FC = () => {
               </span>
               <Input
                 type="number"
-                step="0.01"
-                min="0.01"
+                step="any"
+                min="0"
                 placeholder="0.00"
-                autoFocus
                 {...register("amount", {
                   required: "El monto es obligatorio",
                   min: { value: 0.01, message: "El monto debe ser mayor a 0" },
@@ -513,6 +609,158 @@ export const TransactionModal: React.FC = () => {
                           )} / mes`
                         : "0.00 / mes"}
                     </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cuentas Compartidas / Gastos a Medias (Solo para Gastos) */}
+          {currentType === "expense" && (
+            <div className="p-3 border border-border/80 rounded-xl bg-muted/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    {...register("isShared")}
+                    className="rounded border-input text-primary focus:ring-primary size-4"
+                  />
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Users className="size-4 text-primary" />
+                    <span>¿Gasto compartido? (Te deben dinero)</span>
+                  </div>
+                </label>
+                {isShared && (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-primary/10 text-primary border-primary/20"
+                  >
+                    A medias
+                  </Badge>
+                )}
+              </div>
+
+              {isShared && (
+                <div className="space-y-3 pt-1 border-t border-border/60 animate-in fade-in-50">
+                  {/* Quick Split Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground mr-1">
+                      Repartir:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSplitEvenly(2)}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer transition-colors"
+                    >
+                      50 / 50 (2 pers.)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSplitEvenly(3)}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer transition-colors"
+                    >
+                      Entre 3
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSplitEvenly(4)}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer transition-colors"
+                    >
+                      Entre 4
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">
+                        Tu consumo real
+                      </Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        min="0"
+                        placeholder="0.00"
+                        {...register("myShare")}
+                        className="h-8 text-xs bg-muted/40 font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">
+                        Monto por cobrar
+                      </Label>
+                      <div className="h-8 px-2.5 rounded-lg border border-border bg-muted/30 flex items-center text-xs font-bold text-amber-400 font-mono">
+                        {formatCurrency(
+                          Math.max(
+                            0,
+                            Number(
+                              (
+                                numParsedAmount - (Number(myShare) || 0)
+                              ).toFixed(2),
+                            ),
+                          ),
+                          currentCurrency,
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add participant */}
+                  <div className="space-y-1.5 pt-1">
+                    <Label className="text-[11px] text-muted-foreground">
+                      ¿Quiénes te deben?
+                    </Label>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="text"
+                        placeholder="Nombre (ej. Carlos)"
+                        value={newPartName}
+                        onChange={(e) => setNewPartName(e.target.value)}
+                        className="h-8 text-xs bg-muted/40 flex-1"
+                      />
+                      <Input
+                        type="number"
+                        step="any"
+                        placeholder="Monto"
+                        value={newPartAmount}
+                        onChange={(e) => setNewPartAmount(e.target.value)}
+                        className="h-8 text-xs bg-muted/40 w-20 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleAddParticipant}
+                        className="h-8 px-2 text-xs cursor-pointer shrink-0"
+                      >
+                        <Plus className="size-3.5" />
+                      </Button>
+                    </div>
+
+                    {participants.length > 0 && (
+                      <div className="space-y-1 pt-1 max-h-28 overflow-y-auto">
+                        {participants.map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-background border border-border text-xs"
+                          >
+                            <span className="font-medium text-foreground truncate max-w-[120px]">
+                              {p.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-amber-400 font-semibold">
+                                {formatCurrency(p.amount, currentCurrency)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveParticipant(p.id)}
+                                className="text-muted-foreground hover:text-rose-400 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

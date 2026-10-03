@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { useFinance } from "../../context/FinanceContext";
 import { CategoryIcon } from "../ui/CategoryIcon";
 import {
@@ -28,7 +29,17 @@ export const RecentTransactions: React.FC = () => {
     deleteTransaction,
   } = useFinance();
 
-  const recent = transactions.slice(0, 5);
+  const recent = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => {
+        const dateComp = (b.date || "").localeCompare(a.date || "");
+        if (dateComp !== 0) return dateComp;
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      })
+      .slice(0, 5);
+  }, [transactions]);
 
   const getCategory = (catId: string) => {
     return (

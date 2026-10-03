@@ -24,7 +24,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenMenu }) => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-t border-border md:hidden px-3 py-1.5 safe-area-bottom shadow-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-t border-border md:hidden px-3 pt-1.5 pb-safe shadow-lg">
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {/* Inicio */}
         <button
