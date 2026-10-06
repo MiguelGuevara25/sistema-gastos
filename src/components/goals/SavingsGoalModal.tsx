@@ -109,7 +109,7 @@ export const SavingsGoalModal: React.FC<SavingsGoalModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">
             {goalToEdit
@@ -181,19 +181,19 @@ export const SavingsGoalModal: React.FC<SavingsGoalModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">
                 Fecha Límite (Opcional)
               </Label>
               <Input
                 type="date"
                 {...register("targetDate")}
-                className="h-9 text-xs"
+                className="h-10 px-3 text-xs sm:text-sm bg-muted/40 cursor-pointer w-full min-w-0"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">Color</Label>
               <div className="flex items-center gap-1.5 pt-1.5">
                 {GOAL_COLORS.map((c) => (

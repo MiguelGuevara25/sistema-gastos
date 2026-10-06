@@ -4,18 +4,13 @@ import React, { useMemo } from "react";
 import { useFinance } from "../../context/FinanceContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   ShieldCheck,
   Calendar,
-  AlertTriangle,
-  Flame,
-  CheckCircle2,
-  TrendingDown,
   Sparkles,
   Zap,
 } from "lucide-react";
-import { getDaysInMonth, getDate, getDay } from "date-fns";
+import { getDaysInMonth, getDate, getDay, format } from "date-fns";
 
 export const SafeToSpendWidget: React.FC = () => {
   const {
@@ -23,11 +18,13 @@ export const SafeToSpendWidget: React.FC = () => {
     totalExpenses,
     recurringPendingThisMonth,
     formatCurrency,
-    selectedMonth,
+    transactions,
+    convertAmount,
   } = useFinance();
 
   const metrics = useMemo(() => {
     const today = new Date();
+    const todayStr = format(today, "yyyy-MM-dd");
     const totalDaysInMonth = getDaysInMonth(today);
     const currentDay = getDate(today);
 
@@ -48,6 +45,15 @@ export const SafeToSpendWidget: React.FC = () => {
 
     const safePerDay = daysLeftInMonth > 0 ? remainingPool / daysLeftInMonth : 0;
     const safeThisWeek = safePerDay * daysLeftInWeek;
+
+    // Real expenses recorded for TODAY
+    const spentToday = transactions
+      .filter((t) => t.type === "expense" && t.date === todayStr)
+      .reduce((sum, t) => sum + convertAmount(t.amount, t.currency), 0);
+
+    const hasSpentToday = spentToday > 0;
+    const isTodayOverspent = hasSpentToday && spentToday > safePerDay;
+    const remainingToday = Math.max(0, safePerDay - spentToday);
 
     // Daily spending pace so far this month
     const dailyPace = currentDay > 0 ? totalExpenses / currentDay : 0;
@@ -73,6 +79,27 @@ export const SafeToSpendWidget: React.FC = () => {
       )}/día.`;
     }
 
+    // Dynamic styling for "Disponible seguro para HOY" card
+    let todayTheme = {
+      badgeClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+      valueClass: "text-emerald-400",
+      label: "Límite diario",
+    };
+
+    if (status === "exceeded" || safePerDay <= 0) {
+      todayTheme = {
+        badgeClass: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+        valueClass: "text-rose-400",
+        label: "Límite agotado",
+      };
+    } else if (isTodayOverspent || status === "warning") {
+      todayTheme = {
+        badgeClass: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        valueClass: "text-amber-400",
+        label: isTodayOverspent ? "Límite de hoy superado" : "Ritmo acelerado",
+      };
+    }
+
     return {
       safePerDay,
       safeThisWeek,
@@ -81,15 +108,22 @@ export const SafeToSpendWidget: React.FC = () => {
       commitments,
       remainingPool,
       dailyPace,
+      spentToday,
+      hasSpentToday,
+      isTodayOverspent,
+      remainingToday,
       status,
       statusText,
       statusTip,
+      todayTheme,
     };
   }, [
     settings.monthlyBudget,
     totalExpenses,
     recurringPendingThisMonth,
     formatCurrency,
+    transactions,
+    convertAmount,
   ]);
 
   if (settings.monthlyBudget <= 0) {
@@ -148,19 +182,53 @@ export const SafeToSpendWidget: React.FC = () => {
             <span className="text-[11px] font-medium text-muted-foreground">
               Disponible seguro para HOY
             </span>
-            <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-              Límite diario
+            <span
+              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${metrics.todayTheme.badgeClass}`}
+            >
+              {metrics.todayTheme.label}
             </span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+            <span
+              className={`text-xl sm:text-2xl font-bold font-mono ${metrics.todayTheme.valueClass}`}
+            >
               {formatCurrency(metrics.safePerDay)}
             </span>
             <span className="text-[11px] text-muted-foreground">/ día</span>
           </div>
-          <p className="text-[10px] text-muted-foreground leading-tight">
-            Gasto variable recomendado sin comprometer tus ahorros.
-          </p>
+          {metrics.hasSpentToday ? (
+            <div className="text-[10px] text-muted-foreground leading-tight space-y-0.5 pt-0.5">
+              <p>
+                Gastado hoy:{" "}
+                <strong
+                  className={
+                    metrics.isTodayOverspent
+                      ? "text-amber-400 font-bold"
+                      : "text-foreground font-semibold"
+                  }
+                >
+                  {formatCurrency(metrics.spentToday)}
+                </strong>
+              </p>
+              {metrics.isTodayOverspent ? (
+                <p className="text-amber-400 font-semibold flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span>
+                    Excediste tu cupo de hoy en +
+                    {formatCurrency(metrics.spentToday - metrics.safePerDay)}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-emerald-400 font-medium">
+                  ✓ Te restan {formatCurrency(metrics.remainingToday)} para hoy
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Gasto variable recomendado sin comprometer tus ahorros.
+            </p>
+          )}
         </div>
 
         {/* Seguro para Esta Semana */}

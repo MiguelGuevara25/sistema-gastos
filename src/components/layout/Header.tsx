@@ -124,8 +124,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-background/85 backdrop-blur-md border-b border-border transition-colors">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-1.5 sm:gap-2.5 px-3 sm:px-6 pt-[max(env(safe-area-inset-top,0px),0.75rem)] pb-2.5 sm:py-3 bg-background/85 backdrop-blur-md border-b border-border transition-colors">
+      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
         {/* Mobile menu trigger */}
         <Button
           variant="ghost"
@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         </Button>
 
         <div className="min-w-0">
-          <h2 className="text-sm sm:text-lg md:text-xl font-bold text-foreground tracking-tight truncate max-w-[130px] sm:max-w-none">
+          <h2 className="text-sm sm:text-lg md:text-xl font-bold text-foreground tracking-tight truncate max-w-[120px] xs:max-w-[170px] sm:max-w-none">
             {title}
           </h2>
           <p className="text-[11px] text-muted-foreground hidden sm:block">
@@ -165,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent text-[11px] sm:text-xs font-semibold text-foreground cursor-pointer focus:outline-none appearance-none pr-3 sm:pr-4 pl-0.5 sm:pl-1.5 py-1 max-w-[85px] sm:max-w-none truncate"
+              className="bg-transparent text-[11px] sm:text-xs font-semibold text-foreground cursor-pointer focus:outline-none appearance-none pr-3.5 sm:pr-4 pl-0.5 sm:pl-1.5 py-1 max-w-[95px] xs:max-w-[130px] sm:max-w-none truncate"
             >
               {availableMonths.map((m) => (
                 <option
@@ -204,10 +204,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           size="sm"
           onClick={() => setIsReportModalOpen(true)}
           title="Generar e imprimir reporte ejecutivo del mes (PDF)"
-          className="cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-medium border-border/80 hover:bg-muted/60"
+          className="hidden sm:inline-flex cursor-pointer gap-1.5 h-8 px-2 sm:px-2.5 text-xs font-medium border-border/80 hover:bg-muted/60"
         >
           <FileText className="size-3.5 text-primary" />
-          <span className="hidden sm:inline">Reporte</span>
+          <span>Reporte</span>
         </Button>
 
         {/* PWA Install Button / Prompt */}

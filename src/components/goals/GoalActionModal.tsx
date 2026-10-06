@@ -72,7 +72,7 @@ export const GoalActionModal: React.FC<GoalActionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[92vw] sm:max-w-xs rounded-2xl">
+      <DialogContent className="sm:max-w-xs">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold flex items-center gap-2">
             {action?.type === "deposit" ? (

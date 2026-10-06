@@ -13,7 +13,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Printer,
   FileText,
   Wallet,
   PieChart,
@@ -23,11 +22,6 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Building2,
-  Calendar,
-  User,
-  Coins,
-  CheckCircle2,
-  AlertTriangle,
   Scale,
   Sparkles,
   TrendingUp,

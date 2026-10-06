@@ -10,18 +10,11 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   Sparkles,
-  TrendingDown,
   ShieldCheck,
   Zap,
-  Flame,
-  ArrowRight,
-  Info,
-  Calendar,
   Layers,
   Award,
 } from "lucide-react";
@@ -34,7 +27,7 @@ export const DebtStrategySimulator: React.FC = () => {
   );
 
   const strategy = calculateDebtStrategy(extraPayment);
-  const { snowball, avalanche, interestSaved, monthsSaved } = strategy;
+  const { snowball, avalanche, interestSaved } = strategy;
 
   const activePlan =
     selectedMethod === "snowball" ? snowball.plan : avalanche.plan;

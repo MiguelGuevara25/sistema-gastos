@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useFinance } from "../../context/FinanceContext";
-import { SavingsChallenge } from "../../types/finance";
 import {
   Card,
   CardHeader,
@@ -26,17 +25,11 @@ import { Label } from "@/components/ui/label";
 import {
   Trophy,
   Award,
-  Zap,
-  CalendarDays,
-  ShieldAlert,
-  Flame,
-  CheckCircle2,
   Plus,
   Sparkles,
-  Coins,
   Check,
-  Star,
   Target,
+  Trash2,
 } from "lucide-react";
 
 export const SavingsChallengesView: React.FC = () => {
@@ -45,7 +38,6 @@ export const SavingsChallengesView: React.FC = () => {
     addChallenge,
     toggleChallengeStep,
     deleteChallenge,
-    accounts,
     formatCurrency,
   } = useFinance();
 
@@ -275,6 +267,20 @@ export const SavingsChallengesView: React.FC = () => {
                     </span>
                   </p>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (confirm("¿Estás seguro de eliminar este reto de ahorro?")) {
+                      deleteChallenge(currentChallenge.id);
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-rose-400 h-8 w-8 cursor-pointer"
+                  title="Eliminar reto"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             </div>
 
@@ -364,7 +370,7 @@ export const SavingsChallengesView: React.FC = () => {
 
       {/* Create Custom Challenge Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="size-5 text-primary" /> Crear Nuevo Reto de Ahorro

@@ -195,13 +195,48 @@ body:has([data-slot="dialog-overlay"]) {
   }
 }
 
-/* Safe area utilities for iPhone notch & home bar */
+/* Safe area utilities for iPhone notch, Dynamic Island & home bar */
 .safe-area-bottom,
 .pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
 }
+.safe-area-top,
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  padding-top: max(env(safe-area-inset-top, 0px), 0.75rem);
+}
+
+/* Normalization for iOS WebKit date, time, and datetime inputs */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 100%;
+  color-scheme: dark;
+}
+
+html:not(.dark) input[type="date"],
+html:not(.dark) input[type="datetime-local"],
+html:not(.dark) input[type="time"] {
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.25em;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0;
+  margin: 0;
 }
 
 @media print {

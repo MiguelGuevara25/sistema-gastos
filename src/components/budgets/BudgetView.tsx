@@ -258,7 +258,7 @@ export const BudgetView: React.FC = () => {
                           {formatCurrency(item.amount)}
                         </p>
                         <p className="text-[10px] text-muted-foreground font-medium">
-                          {shareOfBudget}% del presupuesto
+                          {budget > 0 ? `${shareOfBudget}% del presupuesto` : `${item.percentage}% de gastos`}
                         </p>
                       </div>
                     </div>
@@ -267,7 +267,7 @@ export const BudgetView: React.FC = () => {
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min(100, item.percentage)}%`,
+                          width: `${Math.min(100, budget > 0 ? shareOfBudget : item.percentage)}%`,
                           backgroundColor: item.category.color,
                         }}
                       />

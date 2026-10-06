@@ -61,11 +61,11 @@ function Dialog({
   }, [isOpen]);
 
   const handleOpenChange = React.useCallback(
-    (nextOpen: boolean, details: any) => {
+    (nextOpen: boolean, details?: unknown) => {
       if (!isControlled) {
         setInternalOpen(nextOpen);
       }
-      onOpenChange?.(nextOpen, details);
+      onOpenChange?.(nextOpen, details as never);
     },
     [isControlled, onOpenChange]
   );
@@ -130,13 +130,20 @@ function DialogContent({
           typeof className === "function"
             ? className
             : cn(
-                "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl bg-popover p-4 sm:p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none overscroll-contain max-h-[88dvh] overflow-y-auto shadow-2xl data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                "z-50 grid gap-4 bg-popover text-sm text-popover-foreground outline-none overscroll-contain overflow-y-auto duration-200",
+                // Mobile: Modern Bottom Sheet (ensures title/amount/close are never pushed offscreen)
+                "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:translate-x-0 max-sm:translate-y-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:p-4 max-sm:pb-[max(env(safe-area-inset-bottom,0px),1.25rem)] max-sm:max-h-[92dvh] max-sm:border-t max-sm:border-border max-sm:shadow-2xl",
+                // Desktop: Centered Dialog
+                "sm:fixed sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:rounded-2xl sm:p-6 sm:max-h-[88dvh] sm:border sm:border-border sm:shadow-2xl sm:ring-1 sm:ring-foreground/10",
+                // Animations
+                "data-open:animate-in data-open:fade-in-0 max-sm:data-open:slide-in-from-bottom sm:data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 max-sm:data-closed:slide-out-to-bottom sm:data-closed:zoom-out-95",
                 !isCustomMaxW && "sm:max-w-lg",
                 className
               )
         }
         {...props}
       >
+        <div className="sm:hidden w-12 h-1.5 bg-muted-foreground/25 rounded-full mx-auto -mt-1 mb-1 shrink-0" aria-hidden="true" />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -144,12 +151,12 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2 cursor-pointer"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 cursor-pointer rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground size-8 p-0 flex items-center justify-center transition-colors"
                 size="icon-sm"
               />
             }
           >
-            <XIcon />
+            <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

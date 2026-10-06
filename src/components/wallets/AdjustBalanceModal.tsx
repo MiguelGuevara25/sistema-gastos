@@ -60,7 +60,7 @@ export const AdjustBalanceModal: React.FC<AdjustBalanceModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[92vw] sm:max-w-sm rounded-2xl">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Ajustar Saldo: {account?.name}

@@ -22,6 +22,7 @@ import {
   Gift,
   CreditCard,
   DollarSign,
+  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -46,6 +47,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Gift,
   CreditCard,
   DollarSign,
+  ArrowRightLeft,
 };
 
 interface CategoryIconProps {

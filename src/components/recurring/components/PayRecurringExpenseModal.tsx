@@ -70,7 +70,7 @@ export const PayRecurringExpenseModal: React.FC<
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[92vw] sm:max-w-sm rounded-2xl">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold flex items-center gap-2">
             <Receipt className="size-4 text-primary" />
@@ -84,25 +84,25 @@ export const PayRecurringExpenseModal: React.FC<
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <Label className="text-xs text-muted-foreground">
               Fecha del Pago
             </Label>
             <Input
               type="date"
               {...register("payDate", { required: true })}
-              className="h-9 text-xs"
+              className="h-10 px-3 text-xs sm:text-sm bg-muted/40 cursor-pointer w-full min-w-0"
               required
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <Label className="text-xs text-muted-foreground">
               Debitar de Cuenta / Billetera
             </Label>
             <select
               {...register("payAccountId")}
-              className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none"
+              className="w-full h-10 rounded-md bg-muted/40 border border-input text-xs sm:text-sm px-3 text-foreground focus:outline-none cursor-pointer"
             >
               <option value="">-- Sin debitar de cuenta --</option>
               {accounts.map((a) => (

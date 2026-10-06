@@ -25,7 +25,6 @@ import {
   DebtLoan,
   SavingsChallenge,
   SharedExpenseDetails,
-  SharedExpenseParticipant,
 } from "../types/finance";
 import { DEFAULT_CATEGORIES } from "../data/categories";
 import {
@@ -595,8 +594,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Load from localStorage on client mount with migration checks
   useEffect(() => {
-    try {
-      const getStoredWithFallback = (keyV3: string, keyV1: string): string | null => {
+    queueMicrotask(() => {
+      try {
+        const getStoredWithFallback = (keyV3: string, keyV1: string): string | null => {
         const val3 = localStorage.getItem(keyV3);
         if (val3 && val3 !== "[]" && val3 !== "{}") return val3;
         const val1 = localStorage.getItem(keyV1);
@@ -845,6 +845,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setIsLoaded(true);
     }
+    });
   }, []);
 
   // Sync to theme html class
@@ -924,39 +925,45 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Multi-Currency Conversion Logic
   // Rates are relative to base currency (e.g. PEN: 1.0, USD: 3.75 means 1 USD = 3.75 PEN)
-  const convertAmount = (
-    amount: number,
-    fromCurrency: string = settings.currencyCode,
-    toCurrency: string = settings.currencyCode,
-  ): number => {
-    if (fromCurrency === toCurrency || !amount) return amount;
-    const rates = settings.exchangeRates || { PEN: 1, USD: 3.75, EUR: 4.05 };
+  const convertAmount = useCallback(
+    (
+      amount: number,
+      fromCurrency: string = settings.currencyCode,
+      toCurrency: string = settings.currencyCode,
+    ): number => {
+      if (fromCurrency === toCurrency || !amount) return amount;
+      const rates = settings.exchangeRates || { PEN: 1, USD: 3.75, EUR: 4.05 };
 
-    // Value relative to PEN baseline
-    const fromRate = rates[fromCurrency] || (fromCurrency === "USD" ? 3.75 : 1);
-    const toRate = rates[toCurrency] || (toCurrency === "USD" ? 3.75 : 1);
+      // Value relative to PEN baseline
+      const fromRate = rates[fromCurrency] || (fromCurrency === "USD" ? 3.75 : 1);
+      const toRate = rates[toCurrency] || (toCurrency === "USD" ? 3.75 : 1);
 
-    const amountInPEN = amount * fromRate;
-    const converted = amountInPEN / toRate;
-    return Number(converted.toFixed(2));
-  };
+      const amountInPEN = amount * fromRate;
+      const converted = amountInPEN / toRate;
+      return Number(converted.toFixed(2));
+    },
+    [settings.currencyCode, settings.exchangeRates]
+  );
 
   // Currency Formatter
-  const formatCurrency = (amount: number, currencyCode?: string): string => {
-    const isNegative = amount < 0;
-    const absVal = Math.abs(amount).toLocaleString("es-PE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const formatCurrency = useCallback(
+    (amount: number, currencyCode?: string): string => {
+      const isNegative = amount < 0;
+      const absVal = Math.abs(amount).toLocaleString("es-PE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
 
-    const code = currencyCode || settings.currencyCode;
-    let symbol = settings.currency;
-    if (code === "USD") symbol = "$";
-    else if (code === "EUR") symbol = "€";
-    else if (code === "PEN") symbol = "S/.";
+      const code = currencyCode || settings.currencyCode;
+      let symbol = settings.currency;
+      if (code === "USD") symbol = "$";
+      else if (code === "EUR") symbol = "€";
+      else if (code === "PEN") symbol = "S/.";
 
-    return `${isNegative ? "-" : ""}${symbol} ${absVal}`;
-  };
+      return `${isNegative ? "-" : ""}${symbol} ${absVal}`;
+    },
+    [settings.currency, settings.currencyCode]
+  );
 
   // Month navigation
   const availableMonths = useMemo(() => {
@@ -1059,6 +1066,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     let prevIncome = 0;
     let prevExpenses = 0;
     prevTxs.forEach((t) => {
+      if (t.isTransfer) return;
       const amtInBase = convertAmount(
         t.amount,
         t.currency || settings.currencyCode,
@@ -1071,6 +1079,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     let currentExpenses = 0;
     let currentIncome = 0;
     transactions.forEach((t) => {
+      if (t.isTransfer) return;
       const amtInBase = convertAmount(
         t.amount,
         t.currency || settings.currencyCode,
@@ -1095,7 +1104,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       expenseDiffPercent,
       incomeDiffPercent,
     };
-  }, [allTransactions, transactions, selectedMonth, settings.currencyCode]);
+  }, [allTransactions, transactions, selectedMonth, settings.currencyCode, convertAmount]);
 
   // Add / Edit / Delete Transactions with Account Balances & Installments
   const addTransaction = (data: Omit<Transaction, "id" | "createdAt">) => {
@@ -1170,8 +1179,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    // Revert old effect and apply new effect on accounts
-    if (oldTx && (oldTx.accountId || data.accountId)) {
+    // Revert old effect and apply new effect on accounts only if amount, type, or accountId changed
+    const isBalanceImpacting =
+      Boolean(oldTx) &&
+      ((data.amount !== undefined && data.amount !== oldTx?.amount) ||
+        (data.type !== undefined && data.type !== oldTx?.type) ||
+        (data.accountId !== undefined && data.accountId !== oldTx?.accountId));
+
+    if (oldTx && isBalanceImpacting && (oldTx.accountId || data.accountId)) {
       let updatedAccounts = [...accounts];
       if (oldTx.accountId) {
         const revertDelta =
@@ -1224,22 +1239,60 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     }
 
-    if (oldTx && oldTx.accountId) {
-      const revertDelta =
-        oldTx.type === "income" ? -oldTx.amount : oldTx.amount;
-      const updatedAccounts = accounts.map((acc) =>
-        acc.id === oldTx.accountId
-          ? { ...acc, balance: Number((acc.balance + revertDelta).toFixed(2)) }
-          : acc,
-      );
-      saveAccounts(updatedAccounts);
+    if (oldTx) {
+      if (oldTx.isTransfer && oldTx.accountId && oldTx.toAccountId) {
+        // Revert transfer: return amount to source, remove target amount from destination
+        const fromAcc = accounts.find((a) => a.id === oldTx.accountId);
+        const toAcc = accounts.find((a) => a.id === oldTx.toAccountId);
+        const targetRevertAmount =
+          fromAcc && toAcc && fromAcc.currency !== toAcc.currency
+            ? convertAmount(
+                oldTx.amount,
+                fromAcc.currency || settings.currencyCode,
+                toAcc.currency || settings.currencyCode,
+              )
+            : oldTx.amount;
 
-      if (user) {
-        const accToSync = updatedAccounts.find((a) => a.id === oldTx.accountId);
-        if (accToSync) {
-          supabaseService.upsertAccount(user.id, accToSync).catch((err) =>
-            console.error("Error updating account after deleting tx in Supabase:", err)
-          );
+        const updatedAccounts = accounts.map((acc) => {
+          if (acc.id === oldTx.accountId) {
+            return {
+              ...acc,
+              balance: Number((acc.balance + oldTx.amount).toFixed(2)),
+            };
+          }
+          if (acc.id === oldTx.toAccountId) {
+            return {
+              ...acc,
+              balance: Number((acc.balance - targetRevertAmount).toFixed(2)),
+            };
+          }
+          return acc;
+        });
+        saveAccounts(updatedAccounts);
+
+        if (user) {
+          const fromSynced = updatedAccounts.find((a) => a.id === oldTx.accountId);
+          const toSynced = updatedAccounts.find((a) => a.id === oldTx.toAccountId);
+          if (fromSynced) supabaseService.upsertAccount(user.id, fromSynced).catch(console.error);
+          if (toSynced) supabaseService.upsertAccount(user.id, toSynced).catch(console.error);
+        }
+      } else if (oldTx.accountId) {
+        const revertDelta =
+          oldTx.type === "income" ? -oldTx.amount : oldTx.amount;
+        const updatedAccounts = accounts.map((acc) =>
+          acc.id === oldTx.accountId
+            ? { ...acc, balance: Number((acc.balance + revertDelta).toFixed(2)) }
+            : acc,
+        );
+        saveAccounts(updatedAccounts);
+
+        if (user) {
+          const accToSync = updatedAccounts.find((a) => a.id === oldTx.accountId);
+          if (accToSync) {
+            supabaseService.upsertAccount(user.id, accToSync).catch((err) =>
+              console.error("Error updating account after deleting tx in Supabase:", err)
+            );
+          }
         }
       }
     }
@@ -1344,10 +1397,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       description: `Transferencia: ${fromAcc.name} ➔ ${toAcc.name}`,
       amount: data.amount,
       type: "expense",
-      categoryId: "cat-servicios",
+      categoryId: "cat-transferencia",
+      accountId: data.fromAccountId,
+      toAccountId: data.toAccountId,
+      isTransfer: true,
       date: data.date,
       paymentMethod: "transferencia",
-      accountId: data.fromAccountId,
       currency: fromAcc.currency || settings.currencyCode,
       notes:
         data.notes ||
@@ -1370,16 +1425,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     const today = new Date();
     const currentDayOfMonth = getDate(today);
 
+    const creditAccounts = accounts.filter((a) => a.type === "credit");
+
     let totalLimit = 0;
     let totalUsed = 0;
 
-    const creditAccounts = accounts.filter((a) => a.type === "credit");
-
-    const cards = creditAccounts.map((acc) => {
+    for (const acc of creditAccounts) {
       const limit = acc.creditLimit || 0;
       const used = acc.balance < 0 ? Math.abs(acc.balance) : 0;
-      const available = Math.max(0, limit - used);
-
       totalLimit += convertAmount(
         limit,
         acc.currency || settings.currencyCode,
@@ -1390,6 +1443,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         acc.currency || settings.currencyCode,
         settings.currencyCode,
       );
+    }
+
+    const cards = creditAccounts.map((acc) => {
+      const limit = acc.creditLimit || 0;
+      const used = acc.balance < 0 ? Math.abs(acc.balance) : 0;
+      const available = Math.max(0, limit - used);
 
       const closingDay = acc.closingDay || 20;
       const dueDay = acc.dueDay || 15;
@@ -1418,7 +1477,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       availableTotal,
       cards,
     };
-  }, [accounts, settings.currencyCode]);
+  }, [accounts, settings.currencyCode, convertAmount]);
 
   const activeInstallments = useMemo(() => {
     return allTransactions.filter(
@@ -1787,51 +1846,39 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     const todayStr = format(new Date(), "yyyy-MM-dd");
 
     if (accountId) {
-      if (debt.type === "lent") {
-        const updatedAccounts = accounts.map((acc) => {
-          if (acc.id === accountId) {
-            return {
-              ...acc,
-              balance: Number((acc.balance + debt.amount).toFixed(2)),
-            };
-          }
-          return acc;
-        });
-        saveAccounts(updatedAccounts);
+      const targetAcc = accounts.find((a) => a.id === accountId);
+      const effectiveAmount =
+        targetAcc && debt.currency !== targetAcc.currency
+          ? convertAmount(
+              debt.amount,
+              debt.currency || settings.currencyCode,
+              targetAcc.currency || settings.currencyCode,
+            )
+          : debt.amount;
 
+      if (debt.type === "lent") {
         addTransaction({
           description: `Cobro de préstamo: ${debt.personName}`,
-          amount: debt.amount,
+          amount: effectiveAmount,
           type: "income",
           categoryId: "cat-otros-ingresos",
           paymentMethod: "transferencia",
           accountId,
-          currency: debt.currency || settings.currencyCode,
+          currency: targetAcc?.currency || debt.currency || settings.currencyCode,
           date: todayStr,
           notes: debt.notes
             ? `Préstamo cobrado. Notas: ${debt.notes}`
             : `Cobro de préstamo a ${debt.personName}`,
         });
       } else {
-        const updatedAccounts = accounts.map((acc) => {
-          if (acc.id === accountId) {
-            return {
-              ...acc,
-              balance: Number((acc.balance - debt.amount).toFixed(2)),
-            };
-          }
-          return acc;
-        });
-        saveAccounts(updatedAccounts);
-
         addTransaction({
           description: `Pago de deuda a: ${debt.personName}`,
-          amount: debt.amount,
+          amount: effectiveAmount,
           type: "expense",
-          categoryId: "cat-otros",
+          categoryId: "cat-otros-gastos",
           paymentMethod: "transferencia",
           accountId,
-          currency: debt.currency || settings.currencyCode,
+          currency: targetAcc?.currency || debt.currency || settings.currencyCode,
           date: todayStr,
           notes: debt.notes
             ? `Deuda saldada. Notas: ${debt.notes}`
@@ -1886,7 +1933,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         totalBorrowedPending: borrowed,
         netDebtBalance: lent - borrowed,
       };
-    }, [debtsLoans, settings.currencyCode]);
+    }, [debtsLoans, settings.currencyCode, convertAmount]);
 
   const {
     totalLiquidAssets,
@@ -1953,7 +2000,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       netWorth: liquid - debt,
       currencyBreakdown: breakdownList,
     };
-  }, [accounts, settings.currencyCode]);
+  }, [accounts, settings.currencyCode, convertAmount]);
 
   const { totalSavedInGoals, totalTargetGoals } = useMemo(() => {
     let saved = 0;
@@ -1973,7 +2020,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return { totalSavedInGoals: saved, totalTargetGoals: target };
-  }, [goals, settings.currencyCode]);
+  }, [goals, settings.currencyCode, convertAmount]);
 
   const {
     totalRecurringMonthly,
@@ -1996,8 +2043,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         transactions.some(
           (tx) =>
             tx.type === "expense" &&
-            tx.description.toLowerCase().trim() ===
-              exp.name.toLowerCase().trim(),
+            !tx.isTransfer &&
+            (tx.description.toLowerCase().trim() === exp.name.toLowerCase().trim() ||
+              tx.description.toLowerCase().trim() === `pago fijo: ${exp.name}`.toLowerCase().trim() ||
+              tx.description.toLowerCase().includes(exp.name.toLowerCase().trim())),
         );
 
       if (isPaid) paid += amtInBase;
@@ -2008,14 +2057,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       recurringPaidThisMonth: paid,
       recurringPendingThisMonth: Math.max(0, total - paid),
     };
-  }, [recurringExpenses, transactions, selectedMonth, settings.currencyCode]);
+  }, [recurringExpenses, transactions, selectedMonth, settings.currencyCode, convertAmount]);
 
   // Phantom Expenses / Gastos Hormiga Analytics
   const phantomExpensesSummary = useMemo<PhantomExpenseSummary>(() => {
     const threshold = settings.phantomExpenseThreshold || 20;
 
     const phantomTx = transactions.filter((t) => {
-      if (t.type !== "expense") return false;
+      if (t.type !== "expense" || t.isTransfer) return false;
       const amtInBase = convertAmount(
         t.amount,
         t.currency || settings.currencyCode,
@@ -2038,7 +2087,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const count = phantomTx.length;
     const currentMonthExpenses = transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "expense" && !t.isTransfer)
       .reduce(
         (sum, t) =>
           sum +
@@ -2101,7 +2150,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       transactions: phantomTx,
       topDescriptions,
     };
-  }, [transactions, settings.phantomExpenseThreshold, settings.currencyCode, categories]);
+  }, [transactions, settings.phantomExpenseThreshold, settings.currencyCode, categories, convertAmount]);
 
   // Future Cash Flow Projection (30, 60 or 90 days)
   const getCashFlowProjection = (
@@ -2115,6 +2164,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     let totalProjectedExpenses = 0;
 
     const now = new Date();
+    const paidCreditCardAccIds = new Set<string>();
 
     for (let i = 0; i <= days; i++) {
       const dateObj = addDays(now, i);
@@ -2130,7 +2180,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       const isBiweekly = settings.incomeFrequency === "biweekly";
       const payDay = settings.incomePayDay ?? 30;
       const salaryTx = allTransactions.find(
-        (t) => t.type === "income" && (t.categoryId === "cat-salario" || t.categoryId.toLowerCase().includes("salario")),
+        (t) => t.type === "income" && !t.isTransfer && (t.categoryId === "cat-salario" || t.categoryId.toLowerCase().includes("salario")),
       );
       const effectiveIncome =
         settings.monthlyIncome !== undefined && settings.monthlyIncome > 0
@@ -2170,9 +2220,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       });
 
-      // 3. Credit Card Payment Dues
+      // 3. Credit Card Payment Dues (deduct outstanding debt on its first due date)
       accounts.forEach((acc) => {
-        if (acc.type === "credit" && acc.dueDay === dayOfMonth && acc.balance < 0) {
+        if (acc.type === "credit" && acc.dueDay === dayOfMonth && acc.balance < 0 && !paidCreditCardAccIds.has(acc.id)) {
+          paidCreditCardAccIds.add(acc.id);
           const dueAmt = Math.abs(
             convertAmount(
               acc.balance,
@@ -2305,6 +2356,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
       let months = 0;
       let totalInterest = 0;
+      let rolledOverPayments = 0;
       const plan: DebtPlanItem[] = [];
       const payoffOrder: string[] = [];
 
@@ -2312,7 +2364,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
       while (remainingDebts.length > 0 && months < 120) {
         months++;
-        let availableExtra = extraMonthlyPayment;
+        let availableExtra = extraMonthlyPayment + rolledOverPayments;
 
         // Apply interest first
         remainingDebts.forEach((d) => {
@@ -2342,6 +2394,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         remainingDebts.forEach((d) => {
           if (d.balance <= 0.5) {
             payoffOrder.push(d.name);
+            rolledOverPayments += d.minPay; // Rollover freed payment into snowball accelerator
             plan.push({
               id: d.id,
               personName: d.name,
@@ -2521,13 +2574,23 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       isFullySettled: allSettled,
     };
 
-    // If targetAccountId is provided, deposit the reimbursement into that account
+    // If targetAccountId is provided, deposit the reimbursement into that account with currency conversion
     if (targetAccountId) {
+      const targetAcc = accounts.find((a) => a.id === targetAccountId);
+      const convertedReimbursement =
+        targetAcc && tx.currency !== targetAcc.currency
+          ? convertAmount(
+              participant.amount,
+              tx.currency || settings.currencyCode,
+              targetAcc.currency || settings.currencyCode,
+            )
+          : participant.amount;
+
       const updatedAccounts = accounts.map((acc) => {
         if (acc.id === targetAccountId) {
           return {
             ...acc,
-            balance: Number((acc.balance + participant.amount).toFixed(2)),
+            balance: Number((acc.balance + convertedReimbursement).toFixed(2)),
           };
         }
         return acc;
@@ -2703,6 +2766,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     let expenses = 0;
 
     transactions.forEach((tx) => {
+      if (tx.isTransfer) return;
       const rawAmt =
         tx.type === "expense" && tx.sharedDetails
           ? tx.sharedDetails.myShare
@@ -2740,7 +2804,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Category breakdown for expenses
   const categoryBreakdown = useMemo(() => {
-    const expenseTx = transactions.filter((t) => t.type === "expense");
+    const expenseTx = transactions.filter((t) => t.type === "expense" && !t.isTransfer);
     const totalExp = expenseTx.reduce(
       (acc, curr) => {
         const effAmt = curr.sharedDetails ? curr.sharedDetails.myShare : curr.amount;
@@ -2790,7 +2854,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return list.sort((a, b) => b.amount - a.amount);
-  }, [transactions, categories, settings.currencyCode]);
+  }, [transactions, categories, settings.currencyCode, convertAmount]);
 
   // Monthly trend for the past 6 months
   const monthlyExpenseTrend = useMemo(() => {
@@ -2808,7 +2872,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     allTransactions.forEach((tx) => {
-      if (!tx.date) return;
+      if (!tx.date || tx.isTransfer) return;
       try {
         const d = parseISO(tx.date + "T00:00:00");
         const key = formatMonthKey(d);
@@ -2834,7 +2898,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       expenses: data.expenses,
       income: data.income,
     }));
-  }, [allTransactions, settings.currencyCode]);
+  }, [allTransactions, settings.currencyCode, convertAmount]);
 
   return (
     <FinanceContext.Provider

@@ -9,13 +9,133 @@ import {
   SavingsChallenge,
   UserSettings,
   Category,
+  PaymentMethod,
 } from "../types/finance";
+
+// ==========================================
+// DB ROW TYPES
+// ==========================================
+
+export interface DBAccountRow {
+  id: string;
+  name: string;
+  type: Account["type"];
+  balance?: number | string | null;
+  color?: string | null;
+  icon?: string | null;
+  account_number?: string | null;
+  currency?: string | null;
+  credit_limit?: number | string | null;
+  closing_day?: number | null;
+  due_day?: number | null;
+  apr?: number | string | null;
+}
+
+export interface DBTransactionRow {
+  id: string;
+  description: string;
+  amount: number | string;
+  type: Transaction["type"];
+  category_id: string;
+  date: string;
+  payment_method: string;
+  account_id?: string | null;
+  to_account_id?: string | null;
+  is_transfer?: boolean | null;
+  currency?: string | null;
+  exchange_rate?: number | string | null;
+  installments?: Transaction["installments"] | null;
+  shared_details?: Transaction["sharedDetails"] | null;
+  tags?: string[] | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export interface DBRecurringRow {
+  id: string;
+  name: string;
+  amount: number | string;
+  category_id: string;
+  payment_method: string;
+  account_id?: string | null;
+  currency?: string | null;
+  due_day: number;
+  frequency: RecurringExpense["frequency"];
+  last_paid_month?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export interface DBDebtRow {
+  id: string;
+  type: DebtLoan["type"];
+  person_name: string;
+  amount: number | string;
+  due_date?: string | null;
+  status: DebtLoan["status"];
+  notes?: string | null;
+  account_id?: string | null;
+  currency?: string | null;
+  interest_rate?: number | string | null;
+  minimum_payment?: number | string | null;
+  settled_date?: string | null;
+  created_at?: string;
+}
+
+export interface DBGoalRow {
+  id: string;
+  name: string;
+  target_amount: number | string;
+  current_amount?: number | string | null;
+  deadline?: string | null;
+  color?: string | null;
+  category?: string | null;
+  icon?: string | null;
+  currency?: string | null;
+  created_at?: string;
+}
+
+export interface DBChallengeRow {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: SavingsChallenge["type"];
+  target_amount: number | string;
+  current_amount?: number | string | null;
+  start_date: string;
+  duration_units: number;
+  unit_type: SavingsChallenge["unitType"];
+  completed_steps?: number[] | null;
+  status: SavingsChallenge["status"];
+  badge_icon?: string | null;
+  reward_badge?: string | null;
+  currency?: string | null;
+  created_at?: string;
+}
+
+export interface DBSettingsRow {
+  user_name?: string | null;
+  currency?: string | null;
+  currency_code?: string | null;
+  monthly_budget?: number | string | null;
+  theme?: "dark" | "light" | null;
+  exchange_rates?: Record<string, number> | null;
+  phantom_expense_threshold?: number | string | null;
+}
+
+export interface DBCategoryRow {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  type: "expense" | "income";
+}
 
 // ==========================================
 // MAPPERS: TypeScript <-> PostgreSQL
 // ==========================================
 
-export const mapAccountFromDB = (row: any): Account => ({
+export const mapAccountFromDB = (row: DBAccountRow): Account => ({
   id: row.id,
   name: row.name,
   type: row.type,
@@ -46,21 +166,24 @@ export const mapAccountToDB = (userId: string, acc: Partial<Account>) => ({
   apr: acc.apr || null,
 });
 
-export const mapTransactionFromDB = (row: any): Transaction => ({
+export const mapTransactionFromDB = (row: DBTransactionRow): Transaction => ({
   id: row.id,
   description: row.description,
   amount: Number(row.amount) || 0,
   type: row.type,
   categoryId: row.category_id,
   date: row.date,
-  paymentMethod: row.payment_method,
+  paymentMethod: (row.payment_method as PaymentMethod) || "otro",
   accountId: row.account_id || undefined,
+  toAccountId: row.to_account_id || undefined,
+  isTransfer: Boolean(row.is_transfer),
   currency: row.currency || "PEN",
   exchangeRate: row.exchange_rate ? Number(row.exchange_rate) : 1,
   installments: row.installments || undefined,
+  sharedDetails: row.shared_details || undefined,
   tags: row.tags || [],
   notes: row.notes || undefined,
-  createdAt: row.created_at,
+  createdAt: row.created_at || new Date().toISOString(),
 });
 
 export const mapTransactionToDB = (userId: string, tx: Transaction) => ({
@@ -73,26 +196,29 @@ export const mapTransactionToDB = (userId: string, tx: Transaction) => ({
   date: tx.date,
   payment_method: tx.paymentMethod,
   account_id: isValidUUID(tx.accountId) ? tx.accountId : null,
+  to_account_id: isValidUUID(tx.toAccountId) ? tx.toAccountId : null,
+  is_transfer: Boolean(tx.isTransfer),
   currency: tx.currency || "PEN",
   exchange_rate: tx.exchangeRate || 1.0,
   installments: tx.installments || null,
+  shared_details: tx.sharedDetails || null,
   tags: tx.tags || [],
   notes: tx.notes || null,
 });
 
-export const mapRecurringFromDB = (row: any): RecurringExpense => ({
+export const mapRecurringFromDB = (row: DBRecurringRow): RecurringExpense => ({
   id: row.id,
   name: row.name,
   amount: Number(row.amount) || 0,
   categoryId: row.category_id,
-  paymentMethod: row.payment_method,
+  paymentMethod: (row.payment_method as PaymentMethod) || "otro",
   accountId: row.account_id || undefined,
   currency: row.currency || "PEN",
   dueDay: row.due_day,
   frequency: row.frequency,
   lastPaidMonth: row.last_paid_month || undefined,
   notes: row.notes || undefined,
-  createdAt: row.created_at,
+  createdAt: row.created_at || new Date().toISOString(),
 });
 
 export const mapRecurringToDB = (userId: string, rec: RecurringExpense) => ({
@@ -110,7 +236,7 @@ export const mapRecurringToDB = (userId: string, rec: RecurringExpense) => ({
   notes: rec.notes || null,
 });
 
-export const mapDebtFromDB = (row: any): DebtLoan => ({
+export const mapDebtFromDB = (row: DBDebtRow): DebtLoan => ({
   id: row.id,
   type: row.type,
   personName: row.person_name,
@@ -123,7 +249,7 @@ export const mapDebtFromDB = (row: any): DebtLoan => ({
   interestRate: row.interest_rate ? Number(row.interest_rate) : 0,
   minimumPayment: row.minimum_payment ? Number(row.minimum_payment) : 0,
   settledDate: row.settled_date || undefined,
-  createdAt: row.created_at,
+  createdAt: row.created_at || new Date().toISOString(),
 });
 
 export const mapDebtToDB = (userId: string, debt: DebtLoan) => ({
@@ -142,7 +268,7 @@ export const mapDebtToDB = (userId: string, debt: DebtLoan) => ({
   settled_date: debt.settledDate || null,
 });
 
-export const mapGoalFromDB = (row: any): SavingsGoal => ({
+export const mapGoalFromDB = (row: DBGoalRow): SavingsGoal => ({
   id: row.id,
   name: row.name,
   targetAmount: Number(row.target_amount) || 0,
@@ -152,7 +278,7 @@ export const mapGoalFromDB = (row: any): SavingsGoal => ({
   category: row.category || undefined,
   icon: row.icon || "Target",
   currency: row.currency || "PEN",
-  createdAt: row.created_at,
+  createdAt: row.created_at || new Date().toISOString(),
 });
 
 export const mapGoalToDB = (userId: string, goal: SavingsGoal) => ({
@@ -168,7 +294,7 @@ export const mapGoalToDB = (userId: string, goal: SavingsGoal) => ({
   currency: goal.currency || "PEN",
 });
 
-export const mapChallengeFromDB = (row: any): SavingsChallenge => ({
+export const mapChallengeFromDB = (row: DBChallengeRow): SavingsChallenge => ({
   id: row.id,
   title: row.title,
   description: row.description || "",
@@ -183,7 +309,7 @@ export const mapChallengeFromDB = (row: any): SavingsChallenge => ({
   badgeIcon: row.badge_icon || "Trophy",
   rewardBadge: row.reward_badge || "Medalla",
   currency: row.currency || "PEN",
-  createdAt: row.created_at,
+  createdAt: row.created_at || new Date().toISOString(),
 });
 
 export const mapChallengeToDB = (userId: string, chal: SavingsChallenge) => ({
@@ -204,7 +330,7 @@ export const mapChallengeToDB = (userId: string, chal: SavingsChallenge) => ({
   currency: chal.currency || "PEN",
 });
 
-export const mapSettingsFromDB = (row: any): UserSettings => ({
+export const mapSettingsFromDB = (row: DBSettingsRow): UserSettings => ({
   userName: row.user_name || "Usuario",
   currency: row.currency || "S/.",
   currencyCode: row.currency_code || "PEN",
@@ -261,7 +387,7 @@ export const supabaseService = {
     const goals = (goalRes.data || []).map(mapGoalFromDB);
     const challenges = (chalRes.data || []).map(mapChallengeFromDB);
     const settings = setRes.data ? mapSettingsFromDB(setRes.data) : null;
-    const categories: Category[] = (catRes.data || []).map((c: any) => ({
+    const categories: Category[] = (catRes.data || []).map((c: DBCategoryRow) => ({
       id: c.id,
       name: c.name,
       icon: c.icon,
@@ -295,7 +421,7 @@ export const supabaseService = {
   async insertTransaction(userId: string, tx: Transaction) {
     if (!supabase) return null;
     const payload = mapTransactionToDB(userId, tx);
-    let { data, error } = await supabase.from("transactions").upsert(payload).select();
+    const { data, error } = await supabase.from("transactions").upsert(payload).select();
     if (error && error.message?.includes("transactions_account_id_fkey")) {
       const safePayload = { ...payload, account_id: null };
       const retry = await supabase.from("transactions").upsert(safePayload).select();

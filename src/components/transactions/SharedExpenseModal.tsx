@@ -49,16 +49,9 @@ export const SharedExpenseModal: React.FC<SharedExpenseModalProps> = ({
     setSelectedParticipantId(null);
   };
 
-  const pendingParticipants = sharedDetails.participants.filter(
-    (p) => !p.settled,
-  );
-  const settledParticipants = sharedDetails.participants.filter(
-    (p) => p.settled,
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 rounded-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -246,7 +239,7 @@ const LabelWithIcon = ({
   icon: Icon,
   label,
 }: {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
 }) => (
   <label className="text-xs font-medium text-foreground flex items-center gap-1.5">

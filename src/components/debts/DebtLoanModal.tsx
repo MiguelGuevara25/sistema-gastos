@@ -123,7 +123,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HandCoins className="size-5 text-primary" />
@@ -188,8 +188,8 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
           </div>
 
           {/* Monto & Fecha Límite */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5 min-w-0">
               <Label htmlFor="amount" className="text-xs font-semibold">
                 Monto
               </Label>
@@ -201,11 +201,11 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
                 {...register("amount", { required: true })}
                 placeholder="0.00"
                 required
-                className="text-sm font-semibold"
+                className="h-10 text-sm font-semibold"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label htmlFor="dueDate" className="text-xs font-semibold">
                 Fecha Promesa (Opcional)
               </Label>
@@ -213,7 +213,7 @@ export const DebtLoanModal: React.FC<DebtLoanModalProps> = ({
                 id="dueDate"
                 type="date"
                 {...register("dueDate")}
-                className="text-sm"
+                className="h-10 px-3 text-xs sm:text-sm bg-muted/40 cursor-pointer w-full min-w-0"
               />
             </div>
           </div>

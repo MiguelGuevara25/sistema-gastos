@@ -154,7 +154,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (user) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="w-[95vw] sm:max-w-md p-6 rounded-2xl">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader className="space-y-1.5 text-center sm:text-left">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="text-[11px] gap-1 text-emerald-400 border-emerald-500/30">
@@ -230,7 +230,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md p-6 rounded-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader className="space-y-1.5 text-center sm:text-left">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="text-[11px] gap-1 text-emerald-400 border-emerald-500/30">

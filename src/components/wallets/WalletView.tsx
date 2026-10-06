@@ -23,7 +23,6 @@ import {
   Calendar,
   Layers,
   Sparkles,
-  Percent,
 } from "lucide-react";
 import { TransferModal } from "./TransferModal";
 import { AccountModal } from "./AccountModal";

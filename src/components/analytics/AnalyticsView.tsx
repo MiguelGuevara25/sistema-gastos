@@ -30,10 +30,12 @@ export const AnalyticsView: React.FC = () => {
     totalExpenses,
     savingsRate,
     formatCurrency,
+    convertAmount,
+    settings,
   } = useFinance();
 
   const expenseTx = useMemo(
-    () => transactions.filter((t) => t.type === "expense"),
+    () => transactions.filter((t) => t.type === "expense" && !t.isTransfer),
     [transactions],
   );
 
@@ -46,11 +48,20 @@ export const AnalyticsView: React.FC = () => {
   // Highest transaction
   const highestExpense = useMemo(() => {
     if (expenseTx.length === 0) return null;
-    return expenseTx.reduce(
-      (max, curr) => (curr.amount > max.amount ? curr : max),
-      expenseTx[0],
-    );
-  }, [expenseTx]);
+    return expenseTx.reduce((max, curr) => {
+      const currVal = convertAmount(
+        curr.amount,
+        curr.currency || settings.currencyCode,
+        settings.currencyCode,
+      );
+      const maxVal = convertAmount(
+        max.amount,
+        max.currency || settings.currencyCode,
+        settings.currencyCode,
+      );
+      return currVal > maxVal ? curr : max;
+    }, expenseTx[0]);
+  }, [expenseTx, convertAmount, settings.currencyCode]);
 
   // Payment method breakdown
   const paymentBreakdown = useMemo(() => {
@@ -59,7 +70,12 @@ export const AnalyticsView: React.FC = () => {
       if (!map[tx.paymentMethod]) {
         map[tx.paymentMethod] = { amount: 0, count: 0 };
       }
-      map[tx.paymentMethod].amount += tx.amount;
+      const converted = convertAmount(
+        tx.amount,
+        tx.currency || settings.currencyCode,
+        settings.currencyCode,
+      );
+      map[tx.paymentMethod].amount += converted;
       map[tx.paymentMethod].count += 1;
     });
 
@@ -75,7 +91,7 @@ export const AnalyticsView: React.FC = () => {
             : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [expenseTx, totalExpenses]);
+  }, [expenseTx, totalExpenses, convertAmount, settings.currencyCode]);
 
   return (
     <div className="space-y-6">
@@ -134,8 +150,8 @@ export const AnalyticsView: React.FC = () => {
           <CardContent className="p-0 space-y-1">
             <div className="text-2xl font-bold text-foreground truncate">
               {highestExpense
-                ? formatCurrency(highestExpense.amount)
-                : "S/. 0.00"}
+                ? formatCurrency(highestExpense.amount, highestExpense.currency)
+                : formatCurrency(0)}
             </div>
             <p className="text-[11px] text-muted-foreground truncate">
               {highestExpense

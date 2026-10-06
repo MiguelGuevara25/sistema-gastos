@@ -19,16 +19,18 @@ export const CategoryBreakdown: React.FC = () => {
 
   const topCategories = categoryBreakdown.slice(0, 5);
 
-  let cumulativePercent = 0;
-  const donutSlices = topCategories.map((item) => {
-    const start = cumulativePercent;
-    cumulativePercent += item.percentage;
-    return {
+  const donutSlices = topCategories.reduce<
+    Array<(typeof topCategories)[number] & { startAngle: number; endAngle: number }>
+  >((acc, item) => {
+    const lastEndAngle = acc.length > 0 ? acc[acc.length - 1].endAngle : 0;
+    const sweep = (item.percentage / 100) * 360;
+    acc.push({
       ...item,
-      startAngle: (start / 100) * 360,
-      endAngle: (cumulativePercent / 100) * 360,
-    };
-  });
+      startAngle: lastEndAngle,
+      endAngle: lastEndAngle + sweep,
+    });
+    return acc;
+  }, []);
 
   const radius = 40;
   const circumference = 2 * Math.PI * radius;

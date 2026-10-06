@@ -65,6 +65,13 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: "#64748b",
     type: "expense",
   },
+  {
+    id: "cat-transferencia",
+    name: "Transferencia Interna",
+    icon: "ArrowRightLeft",
+    color: "#3b82f6",
+    type: "expense",
+  },
 
   // Ingresos
   {

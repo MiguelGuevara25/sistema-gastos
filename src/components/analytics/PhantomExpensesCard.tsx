@@ -17,9 +17,7 @@ import {
   ShieldAlert,
   Flame,
   Sparkles,
-  TrendingDown,
   Coffee,
-  HelpCircle,
   SlidersHorizontal,
   Check,
 } from "lucide-react";

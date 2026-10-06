@@ -108,6 +108,8 @@ export interface Transaction {
   date: string; // YYYY-MM-DD
   paymentMethod: PaymentMethod;
   accountId?: string; // Billetera o cuenta asociada
+  toAccountId?: string; // Billetera de destino si es transferencia
+  isTransfer?: boolean; // Flag para distinguir transferencias entre cuentas propias
   currency?: string; // "PEN" | "USD" | "EUR"
   exchangeRate?: number; // Tipo de cambio respecto a divisa base
   installments?: InstallmentDetails; // Detalles de compra en cuotas

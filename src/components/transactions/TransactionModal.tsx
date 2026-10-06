@@ -33,7 +33,6 @@ import {
   FileText,
   Wallet,
   Layers,
-  Sparkles,
   ShieldAlert,
   Users,
   Plus,
@@ -336,7 +335,7 @@ export const TransactionModal: React.FC = () => {
       open={isAddModalOpen}
       onOpenChange={(open) => !open && handleClose()}
     >
-      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[88dvh] overflow-y-auto p-4 sm:p-6 gap-4 sm:gap-5 rounded-2xl overscroll-contain">
+      <DialogContent className="sm:max-w-lg gap-4 sm:gap-5">
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg font-bold">
             {editingTransaction ? "Editar Movimiento" : "Nuevo Movimiento"}
@@ -502,7 +501,7 @@ export const TransactionModal: React.FC = () => {
 
           {/* Date, Payment Method & Account */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Calendar className="size-3.5" />
                 Fecha
@@ -510,18 +509,18 @@ export const TransactionModal: React.FC = () => {
               <Input
                 type="date"
                 {...register("date", { required: true })}
-                className="h-10 bg-muted/40 scheme-dark"
+                className="h-10 px-3 text-xs sm:text-sm bg-muted/40 cursor-pointer w-full min-w-0"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <CreditCard className="size-3.5" />
                 Método de Pago
               </Label>
               <select
                 {...register("paymentMethod")}
-                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
+                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs sm:text-sm text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
                   <option
@@ -535,14 +534,14 @@ export const TransactionModal: React.FC = () => {
               </select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Wallet className="size-3.5" />
                 Cuenta / Billetera
               </Label>
               <select
                 {...register("accountId")}
-                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
+                className="w-full h-10 px-3 bg-muted/40 border border-input rounded-lg text-xs sm:text-sm text-foreground focus:outline-hidden focus:border-ring cursor-pointer"
               >
                 <option value="">-- Sin cuenta --</option>
                 {accounts.map((acc) => (

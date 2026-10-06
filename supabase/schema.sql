@@ -56,9 +56,12 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   payment_method TEXT NOT NULL,
   account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
+  to_account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
+  is_transfer BOOLEAN DEFAULT false,
   currency TEXT DEFAULT 'PEN',
   exchange_rate NUMERIC(8, 4) DEFAULT 1.0000,
   installments JSONB,
+  shared_details JSONB,
   tags TEXT[] DEFAULT '{}',
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()

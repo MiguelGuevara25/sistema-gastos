@@ -59,14 +59,17 @@ export const RecurringExpensesView: React.FC = () => {
       : 0;
 
   // Helper to check if a recurring expense was paid in the active month
-  const isExpensePaidThisMonth = (exp: RecurringExpense) => {
-    if (exp.lastPaidMonth === activeMonthKey) return true;
-    return transactions.some(
-      (tx) =>
-        tx.type === "expense" &&
-        tx.description.toLowerCase().trim() === exp.name.toLowerCase().trim(),
-    );
-  };
+  const isExpensePaidThisMonth = React.useCallback(
+    (exp: RecurringExpense) => {
+      if (exp.lastPaidMonth === activeMonthKey) return true;
+      return transactions.some(
+        (tx) =>
+          tx.type === "expense" &&
+          tx.description.toLowerCase().trim() === exp.name.toLowerCase().trim(),
+      );
+    },
+    [activeMonthKey, transactions],
+  );
 
   // Find next upcoming bill
   const nextUpcomingBill = useMemo(() => {
@@ -84,7 +87,7 @@ export const RecurringExpensesView: React.FC = () => {
     });
 
     return sorted[0];
-  }, [recurringExpenses, transactions, activeMonthKey]);
+  }, [recurringExpenses, isExpensePaidThisMonth]);
 
   const handleOpenAddModal = () => {
     setEditingExpense(null);
@@ -108,7 +111,7 @@ export const RecurringExpensesView: React.FC = () => {
       if (statusFilter === "paid") return isPaid;
       return true;
     });
-  }, [recurringExpenses, statusFilter, transactions, activeMonthKey]);
+  }, [recurringExpenses, statusFilter, isExpensePaidThisMonth]);
 
   return (
     <div className="space-y-6">

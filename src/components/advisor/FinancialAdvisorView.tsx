@@ -46,6 +46,7 @@ export const FinancialAdvisorView: React.FC = () => {
     addGoal,
     settings,
     formatCurrency,
+    convertAmount,
   } = useFinance();
 
   // Investment Simulator State
@@ -57,15 +58,24 @@ export const FinancialAdvisorView: React.FC = () => {
   // Average or detected monthly income fallback
   const detectedIncome = useMemo(() => {
     if (totalIncome > 0) return totalIncome;
-    const incomeTxs = allTransactions.filter((t) => t.type === "income");
+    const incomeTxs = allTransactions.filter((t) => t.type === "income" && !t.isTransfer);
     if (incomeTxs.length > 0) {
       const months = new Set(incomeTxs.map((t) => t.date.substring(0, 7)));
-      const sum = incomeTxs.reduce((s, t) => s + t.amount, 0);
+      const sum = incomeTxs.reduce(
+        (s, t) =>
+          s +
+          convertAmount(
+            t.amount,
+            t.currency || settings.currencyCode,
+            settings.currencyCode,
+          ),
+        0,
+      );
       return Math.round(sum / Math.max(1, months.size));
     }
     if (settings.monthlyBudget > 0) return settings.monthlyBudget;
     return 2500;
-  }, [totalIncome, allTransactions, settings.monthlyBudget]);
+  }, [totalIncome, allTransactions, settings.monthlyBudget, convertAmount, settings.currencyCode]);
 
   // Scratchpad (Simulador Arenero) State
   const [purchaseName, setPurchaseName] = useState("Nueva Laptop / Viaje");
@@ -109,13 +119,29 @@ export const FinancialAdvisorView: React.FC = () => {
       }
     }
 
+    const rawAmtBase = convertAmount(
+      rawAmt,
+      purchaseCurrency,
+      settings.currencyCode,
+    );
+    const monthlyPaymentBase = convertAmount(
+      monthlyPayment,
+      purchaseCurrency,
+      settings.currencyCode,
+    );
+    const totalCostBase = convertAmount(
+      totalCost,
+      purchaseCurrency,
+      settings.currencyCode,
+    );
+
     const activeIncome =
       purchaseIncome !== "" && !isNaN(parseFloat(purchaseIncome))
         ? parseFloat(purchaseIncome)
         : detectedIncome;
 
     const currentSurplus = activeIncome - totalExpenses;
-    const projectedSurplus = currentSurplus - monthlyPayment;
+    const projectedSurplus = currentSurplus - monthlyPaymentBase;
 
     const currentSavingsRate =
       activeIncome > 0
@@ -128,13 +154,13 @@ export const FinancialAdvisorView: React.FC = () => {
 
     // Hours of work: activeIncome / 160
     const hourlyWage = activeIncome > 0 ? activeIncome / 160 : 20;
-    const hoursOfWork = Math.round(totalCost / hourlyWage);
+    const hoursOfWork = Math.round(totalCostBase / hourlyWage);
     const daysOfWork = (hoursOfWork / 8).toFixed(1);
 
     // Micro-expense check (e.g. galleta de S/. 1, taxi de S/. 12)
     const isMicroExpense =
-      rawAmt > 0 && rawAmt <= (settings.phantomExpenseThreshold || 20);
-    const hasLiquidity = totalLiquidAssets >= rawAmt;
+      rawAmtBase > 0 && rawAmtBase <= (settings.phantomExpenseThreshold || 20);
+    const hasLiquidity = totalLiquidAssets >= rawAmtBase;
 
     // Verdict calculation
     let verdict: "safe" | "caution" | "danger" = "safe";
@@ -222,6 +248,8 @@ export const FinancialAdvisorView: React.FC = () => {
     settings.phantomExpenseThreshold,
     formatCurrency,
     purchaseCurrency,
+    convertAmount,
+    settings.currencyCode,
   ]);
 
   // Calculate 50/30/20 Rule distribution based on active transactions
@@ -234,7 +262,12 @@ export const FinancialAdvisorView: React.FC = () => {
     let wants = 0;
 
     transactions.forEach((tx) => {
-      if (tx.type !== "expense") return;
+      if (tx.type !== "expense" || tx.isTransfer) return;
+      const amt = convertAmount(
+        tx.amount,
+        tx.currency || settings.currencyCode,
+        settings.currencyCode,
+      );
       const id = tx.categoryId.toLowerCase();
       if (
         id.includes("vivienda") ||
@@ -243,9 +276,9 @@ export const FinancialAdvisorView: React.FC = () => {
         id.includes("transporte") ||
         id.includes("salud")
       ) {
-        needs += tx.amount;
+        needs += amt;
       } else {
-        wants += tx.amount;
+        wants += amt;
       }
     });
 
@@ -293,7 +326,7 @@ export const FinancialAdvisorView: React.FC = () => {
       totalSpent,
       totalIncome,
     };
-  }, [transactions, totalIncome, totalExpenses]);
+  }, [transactions, totalIncome, convertAmount, settings.currencyCode]);
 
   // Financial Health Score (0 - 100)
   const healthScore = useMemo(() => {

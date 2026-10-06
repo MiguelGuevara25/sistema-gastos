@@ -88,7 +88,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base font-bold flex items-center gap-2">
             <ArrowRightLeft className="size-4 text-primary" />
@@ -107,14 +107,14 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">
                 Desde (Origen)
               </Label>
               <select
                 {...register("fromAccountId")}
-                className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none"
+                className="w-full h-10 rounded-md bg-muted/40 border border-input text-xs sm:text-sm px-3 text-foreground focus:outline-none cursor-pointer"
               >
                 {accounts.map((a) => (
                   <option
@@ -128,13 +128,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               </select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">
                 Hacia (Destino)
               </Label>
               <select
                 {...register("toAccountId")}
-                className="w-full h-9 rounded-md bg-muted/40 border border-input text-xs px-2.5 text-foreground focus:outline-none"
+                className="w-full h-10 rounded-md bg-muted/40 border border-input text-xs sm:text-sm px-3 text-foreground focus:outline-none cursor-pointer"
               >
                 {accounts.map((a) => (
                   <option
@@ -149,8 +149,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">
                 Monto a Transferir
               </Label>
@@ -160,17 +160,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 min="0.01"
                 placeholder="0.00"
                 {...register("amount", { required: true })}
-                className="h-9 text-xs"
+                className="h-10 text-xs sm:text-sm"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs text-muted-foreground">Fecha</Label>
               <Input
                 type="date"
                 {...register("date", { required: true })}
-                className="h-9 text-xs"
+                className="h-10 px-3 text-xs sm:text-sm bg-muted/40 cursor-pointer w-full min-w-0"
               />
             </div>
           </div>

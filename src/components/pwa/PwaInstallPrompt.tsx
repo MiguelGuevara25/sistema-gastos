@@ -32,8 +32,8 @@ export const PwaInstallPrompt: React.FC = () => {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Check if running in standalone mode (already installed PWA)
-    if (typeof window !== "undefined") {
+    // Check platform & standalone mode asynchronously to avoid cascading renders
+    queueMicrotask(() => {
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone ===
@@ -42,26 +42,25 @@ export const PwaInstallPrompt: React.FC = () => {
         setIsInstalled(true);
       }
 
-      // Check if iOS
       const userAgent = window.navigator.userAgent.toLowerCase();
       const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
       setIsIOS(isIosDevice);
+    });
 
-      // Listen for Android / Chrome beforeinstallprompt
-      const handleBeforeInstallPrompt = (e: Event) => {
-        e.preventDefault();
-        setDeferredPrompt(e as BeforeInstallPromptEvent);
-      };
+    // Listen for Android / Chrome beforeinstallprompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
 
-      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-      return () => {
-        window.removeEventListener(
-          "beforeinstallprompt",
-          handleBeforeInstallPrompt,
-        );
-      };
-    }
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+    };
   }, []);
 
   const handleInstallClick = async () => {

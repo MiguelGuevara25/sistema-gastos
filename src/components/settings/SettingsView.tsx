@@ -23,7 +23,6 @@ import {
   Trash2,
   Check,
   AlertCircle,
-  ShieldCheck,
   Smartphone,
   Coins,
   ShieldAlert,
@@ -456,27 +455,48 @@ export const SettingsView: React.FC = () => {
 
           <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs text-muted-foreground">
-              Limpieza total: borra transacciones, cuentas y metas tanto en tu equipo como en Supabase.
+              Restauración o limpieza completa de transacciones, cuentas y metas.
             </div>
 
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={async () => {
-                if (
-                  confirm(
-                    "¿Estás seguro de que deseas borrar TODOS los datos y empezar de 0? Esta acción limpiará todo tanto en tu navegador como en Supabase."
-                  )
-                ) {
-                  await clearAllData();
-                  alert("¡Listo! Todos los datos han sido limpiados y tu cuenta está en 0.");
-                }
-              }}
-              className="w-full sm:w-auto text-xs cursor-pointer gap-1.5 font-semibold"
-            >
-              <Trash2 className="size-3.5" />
-              Borrar Todo y Empezar de 0
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (
+                    confirm(
+                      "¿Deseas restaurar los datos de ejemplo predeterminados? Se sobreescribirán tus datos actuales."
+                    )
+                  ) {
+                    await resetToDefaultData();
+                    alert("¡Listo! Datos de ejemplo restaurados.");
+                  }
+                }}
+                className="w-full sm:w-auto text-xs cursor-pointer gap-1.5 font-semibold text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="size-3.5" />
+                Cargar Datos de Ejemplo
+              </Button>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  if (
+                    confirm(
+                      "¿Estás seguro de que deseas borrar TODOS los datos y empezar de 0? Esta acción limpiará todo tanto en tu navegador como en Supabase."
+                    )
+                  ) {
+                    await clearAllData();
+                    alert("¡Listo! Todos los datos han sido limpiados y tu cuenta está en 0.");
+                  }
+                }}
+                className="w-full sm:w-auto text-xs cursor-pointer gap-1.5 font-semibold"
+              >
+                <Trash2 className="size-3.5" />
+                Borrar Todo y Empezar de 0
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

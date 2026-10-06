@@ -589,7 +589,7 @@ export const DebtsLoansView: React.FC = () => {
         open={!!settlingDebt}
         onOpenChange={(open) => !open && setSettlingDebt(null)}
       >
-        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="size-5 text-emerald-400" />

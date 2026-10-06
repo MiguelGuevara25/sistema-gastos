@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useFinance } from "../../context/FinanceContext";
 import { ActiveTab } from "../../types/finance";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ import {
   X,
   LogIn,
   LogOut,
-  Cloud,
 } from "lucide-react";
 
 interface SidebarProps {
