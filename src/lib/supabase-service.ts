@@ -355,6 +355,21 @@ export const mapSettingsToDB = (userId: string, s: UserSettings) => ({
 // SUPABASE DATABASE OPERATIONS
 // ==========================================
 
+const describeSupabaseError = (error: {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+}) =>
+  [
+    error.code ? `código=${error.code}` : null,
+    `mensaje=${error.message}`,
+    error.details ? `detalle=${error.details}` : null,
+    error.hint ? `sugerencia=${error.hint}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
 export const supabaseService = {
   // Fetch all user finance data in parallel
   async fetchAllUserData(userId: string) {
@@ -379,6 +394,25 @@ export const supabaseService = {
       supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("categories").select("*"),
     ]);
+
+    // PostgREST returns failures in `error` without rejecting the promise. Do not
+    // interpret a failed query as an empty table: that can cause local data to
+    // overwrite or mask the real cloud state during login.
+    const queryResults = [
+      ["accounts", accRes],
+      ["transactions", txRes],
+      ["recurring_expenses", recRes],
+      ["debts_loans", debRes],
+      ["savings_goals", goalRes],
+      ["savings_challenges", chalRes],
+      ["user_settings", setRes],
+      ["categories", catRes],
+    ] as const;
+    for (const [table, result] of queryResults) {
+      if (result.error) {
+        throw new Error(`Supabase: no se pudo leer ${table}: ${describeSupabaseError(result.error)}`);
+      }
+    }
 
     const accounts = (accRes.data || []).map(mapAccountFromDB);
     const transactions = (txRes.data || []).map(mapTransactionFromDB);
@@ -428,8 +462,9 @@ export const supabaseService = {
       if (!retry.error) return retry.data;
     }
     if (error) {
-      console.error("Error inserting transaction to Supabase:", error);
-      throw error;
+      const diagnostic = describeSupabaseError(error);
+      console.error(`Error insertando transacción en Supabase (${diagnostic})`);
+      throw new Error(`No se pudo guardar la transacción. ${diagnostic}`);
     }
     return data;
   },
@@ -563,37 +598,42 @@ export const supabaseService = {
   ) {
     if (!supabase) return;
 
-    // Settings
-    await supabase.from("user_settings").upsert(mapSettingsToDB(userId, data.settings));
+    const save = async (table: string, operation: PromiseLike<{ error: { message: string } | null }>) => {
+      const { error } = await operation;
+      if (error) throw new Error(`Supabase: no se pudo guardar ${table}: ${describeSupabaseError(error)}`);
+    };
+
+    // Keep the order: transaction rows can reference accounts via foreign keys.
+    await save("user_settings", supabase.from("user_settings").upsert(mapSettingsToDB(userId, data.settings)));
 
     // Accounts
     if (data.accounts.length > 0) {
-      await supabase.from("accounts").upsert(data.accounts.map((a) => mapAccountToDB(userId, a)));
+      await save("accounts", supabase.from("accounts").upsert(data.accounts.map((a) => mapAccountToDB(userId, a))));
     }
 
     // Transactions
     if (data.transactions.length > 0) {
-      await supabase.from("transactions").upsert(data.transactions.map((t) => mapTransactionToDB(userId, t)));
+      await save("transactions", supabase.from("transactions").upsert(data.transactions.map((t) => mapTransactionToDB(userId, t))));
     }
 
     // Recurring
     if (data.recurring.length > 0) {
-      await supabase.from("recurring_expenses").upsert(data.recurring.map((r) => mapRecurringToDB(userId, r)));
+      await save("recurring_expenses", supabase.from("recurring_expenses").upsert(data.recurring.map((r) => mapRecurringToDB(userId, r))));
     }
 
     // Debts
     if (data.debts.length > 0) {
-      await supabase.from("debts_loans").upsert(data.debts.map((d) => mapDebtToDB(userId, d)));
+      await save("debts_loans", supabase.from("debts_loans").upsert(data.debts.map((d) => mapDebtToDB(userId, d))));
     }
 
     // Goals
     if (data.goals.length > 0) {
-      await supabase.from("savings_goals").upsert(data.goals.map((g) => mapGoalToDB(userId, g)));
+      await save("savings_goals", supabase.from("savings_goals").upsert(data.goals.map((g) => mapGoalToDB(userId, g))));
     }
 
     // Challenges
     if (data.challenges.length > 0) {
-      await supabase.from("savings_challenges").upsert(data.challenges.map((c) => mapChallengeToDB(userId, c)));
+      await save("savings_challenges", supabase.from("savings_challenges").upsert(data.challenges.map((c) => mapChallengeToDB(userId, c))));
     }
   },
 };

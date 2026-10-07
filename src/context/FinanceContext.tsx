@@ -474,7 +474,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           const parsedAccs: Account[] = localAccs ? JSON.parse(localAccs) : [];
           if (parsedAccs.length > 0) {
             for (const acc of parsedAccs) {
-              await supabaseService.upsertAccount(userId, acc).catch(console.error);
+              await supabaseService.upsertAccount(userId, acc);
             }
           }
         }
@@ -489,7 +489,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           if (parsedTxs.length > 0) {
             setAllTransactions(parsedTxs);
             for (const tx of parsedTxs) {
-              await supabaseService.insertTransaction(userId, tx).catch(console.error);
+              await supabaseService.insertTransaction(userId, tx);
             }
           }
         }
@@ -503,7 +503,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           const parsedRec: RecurringExpense[] = localRec ? JSON.parse(localRec) : [];
           if (parsedRec.length > 0) {
             for (const rec of parsedRec) {
-              await supabaseService.upsertRecurring(userId, rec).catch(console.error);
+              await supabaseService.upsertRecurring(userId, rec);
             }
           }
         }
@@ -517,7 +517,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           const parsedDebts: DebtLoan[] = localDebts ? JSON.parse(localDebts) : [];
           if (parsedDebts.length > 0) {
             for (const debt of parsedDebts) {
-              await supabaseService.upsertDebt(userId, debt).catch(console.error);
+              await supabaseService.upsertDebt(userId, debt);
             }
           }
         }
@@ -531,7 +531,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           const parsedGoals: SavingsGoal[] = localGoals ? JSON.parse(localGoals) : [];
           if (parsedGoals.length > 0) {
             for (const goal of parsedGoals) {
-              await supabaseService.upsertGoal(userId, goal).catch(console.error);
+              await supabaseService.upsertGoal(userId, goal);
             }
           }
         }
@@ -1108,6 +1108,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Add / Edit / Delete Transactions with Account Balances & Installments
   const addTransaction = (data: Omit<Transaction, "id" | "createdAt">) => {
+    console.log(data)
+
     const validAccId = isValidUUID(data.accountId) ? data.accountId : undefined;
     const newTx: Transaction = {
       ...data,
